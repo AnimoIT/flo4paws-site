@@ -1,0 +1,21 @@
+{
+  "name": "Flo 4 Paws",
+  "short_name": "Flo4Paws",
+  "description": "Dog behaviourist for nervous and reactive dogs, Nottinghamshire.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#FBFAF7",
+  "theme_color": "#50E3C2",
+  "icons": [
+    {
+      "src": "/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
