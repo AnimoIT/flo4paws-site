@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Karla:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/site.css?v=3bdfc047">
+<link rel="stylesheet" href="/site.css?v=b2b1f257">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" type="image/png" sizes="16x16" href="/img/icon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
@@ -47,8 +47,17 @@
     }
   ]
 }</script>
-<!-- GA4 + Consent Mode v2 go here. Must default to denied. See seo-audit.md §5.3 -->
-<script src="/site.js?v=9f18abc7" defer></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag("consent","default",{"ad_storage":"denied","ad_user_data":"denied","ad_personalization":"denied","analytics_storage":"denied"});
+try{if(localStorage.getItem("f4p-consent")==="granted"){gtag("consent","update",{"ad_storage":"granted","ad_user_data":"granted","ad_personalization":"granted","analytics_storage":"granted"});}}catch(e){}
+gtag("js",new Date());
+var f4pCfg={"linker":{"domains":["flo4paws.co.uk","app.flo4paws.co.uk"]}};
+if(location.hostname==="staging.flo4paws.co.uk"){f4pCfg.debug_mode=true;}
+gtag("config","G-WZVF0MNWQF",f4pCfg);
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZVF0MNWQF"></script>
+<script src="/site.js?v=537d9037" defer></script>
 </head>
 <body>
 <header class="site">

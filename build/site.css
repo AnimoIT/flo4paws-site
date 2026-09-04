@@ -308,3 +308,8 @@ nav.main a.cta:hover{background:var(--forest-deep);color:var(--white)}
 .crumbs a:hover{color:var(--forest);text-decoration:underline}
 .plist .nm a{text-decoration:none}
 .plist .nm a:hover{text-decoration:underline}
+.consent-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--paper);border-top:2px solid var(--mint);
+  box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:.9rem 1.2rem;display:flex;gap:1rem;align-items:center;justify-content:center;flex-wrap:wrap;font-size:.92rem}
+.consent-bar p{margin:0;max-width:42rem}
+.consent-actions{display:flex;gap:.6rem;flex:none}
+.consent-bar .btn{padding:.55rem 1rem;font-size:.88rem}

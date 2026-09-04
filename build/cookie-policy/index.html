@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cookie Policy | Flo 4 Paws</title>
-<meta name="description" content="How Flo4Paws uses browser local storage rather than tracking cookies, what is not used, and how to clear stored data from your browser.">
+<meta name="description" content="Which cookies this website sets with your consent, what the Flo4Paws platform stores instead of cookies, and how to change your choice or clear stored data.">
 <link rel="canonical" href="https://www.flo4paws.co.uk/cookie-policy/">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#50E3C2">
@@ -13,13 +13,13 @@
 <meta property="og:locale" content="en_GB">
 <meta property="og:url" content="https://www.flo4paws.co.uk/cookie-policy/">
 <meta property="og:title" content="Cookie Policy | Flo 4 Paws">
-<meta property="og:description" content="How Flo4Paws uses browser local storage rather than tracking cookies, what is not used, and how to clear stored data from your browser.">
+<meta property="og:description" content="Which cookies this website sets with your consent, what the Flo4Paws platform stores instead of cookies, and how to change your choice or clear stored data.">
 <meta property="og:image" content="https://www.flo4paws.co.uk/img/flo-with-labrador.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Karla:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/site.css?v=3bdfc047">
+<link rel="stylesheet" href="/site.css?v=b2b1f257">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" type="image/png" sizes="16x16" href="/img/icon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
@@ -47,8 +47,17 @@
     }
   ]
 }</script>
-<!-- GA4 + Consent Mode v2 go here. Must default to denied. See seo-audit.md §5.3 -->
-<script src="/site.js?v=9f18abc7" defer></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag("consent","default",{"ad_storage":"denied","ad_user_data":"denied","ad_personalization":"denied","analytics_storage":"denied"});
+try{if(localStorage.getItem("f4p-consent")==="granted"){gtag("consent","update",{"ad_storage":"granted","ad_user_data":"granted","ad_personalization":"granted","analytics_storage":"granted"});}}catch(e){}
+gtag("js",new Date());
+var f4pCfg={"linker":{"domains":["flo4paws.co.uk","app.flo4paws.co.uk"]}};
+if(location.hostname==="staging.flo4paws.co.uk"){f4pCfg.debug_mode=true;}
+gtag("config","G-WZVF0MNWQF",f4pCfg);
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WZVF0MNWQF"></script>
+<script src="/site.js?v=537d9037" defer></script>
 </head>
 <body>
 <header class="site">
@@ -61,13 +70,19 @@
   </div>
 </header>
 <nav class="crumbs" aria-label="Breadcrumb"><div class="wrap"><a href="/">Home</a> / <span>Cookie policy</span></div></nav><section class="hero hero-plain"><div class="wrap">
-  <div class="hero-text"><h1 class="q">Cookie policy<span class="lede-line">Last updated: April 2026</span></h1></div>
+  <div class="hero-text"><h1 class="q">Cookie policy<span class="lede-line">Last updated: September 2026</span></h1></div>
 </div></section>
 
 <section><div class="wrap" style="max-width:44rem">
-  <div class="note-box"><b>Review needed.</b> This is the existing policy, which is written for the Flo4Paws platform at app.flo4paws.co.uk. Once Google Analytics and Google Ads tags are added to this website, the cookie section will no longer be accurate for these pages and must be rewritten to cover the website separately. See seo-audit.md &sect;5.3.</div>
-  <p class="lede">This policy explains how cookies and similar technologies such as browser local storage are used.</p>
-  <h2 class="head" style="font-size:1.5rem">1. What we use</h2><p>The Flo4Paws platform does not use traditional cookies. It stores a secure refresh token in your browser's local storage so you stay signed in between sessions.</p><h2 class="head" style="font-size:1.5rem">2. What the platform does not use</h2><ul class='checks'><li>Advertising or marketing cookies</li><li>Third-party tracking cookies</li><li>Analytics cookies</li><li>Social media cookies</li></ul><p><b>This section describes the platform at app.flo4paws.co.uk. It does not yet describe this website.</b> When analytics or advertising tags are added here, this policy must be updated and a consent banner added before those tags may load.</p><h2 class="head" style="font-size:1.5rem">3. How to clear stored data</h2><p>Clear your browser's site data or cache. On a mobile device, clear app data in your device settings. Doing so will sign you out of Flo4Paws.</p>
+  <p class="lede">This policy explains what this website and the Flo4Paws platform store in your browser, and how to change your choice.</p>
+  <h2 class="head" style="font-size:1.5rem">1. This website (www.flo4paws.co.uk)</h2>
+  <p>When you first visit, a bar at the foot of the page asks whether you accept cookies. Until you choose, and if you decline, no analytics or advertising cookies are set. Google may still receive anonymous, cookie-free signals that a page was viewed (Google Consent Mode), which cannot identify you.</p>
+  <p>If you accept, the site sets Google Analytics cookies (names beginning <code>_ga</code>, kept for up to two years) so Flo can see which pages are read and how people arrive, and Google Ads can measure whether an advert led to an enquiry. Your choice is kept in your browser&rsquo;s local storage under the key <code>f4p-consent</code> so you are not asked again on every page.</p>
+  <p><button type="button" class="btn line" id="consent-reset">Change my cookie choice</button></p>
+  <h2 class="head" style="font-size:1.5rem">2. The Flo4Paws platform (app.flo4paws.co.uk)</h2>
+  <p>The platform does not use traditional cookies. It stores a secure refresh token in your browser's local storage so you stay signed in between sessions. The platform does not use advertising, third-party tracking, analytics or social media cookies.</p>
+  <h2 class="head" style="font-size:1.5rem">3. How to clear stored data</h2>
+  <p>Clear your browser's site data or cache. On a mobile device, clear app data in your device settings. Doing so will sign you out of Flo4Paws and will ask for your cookie choice again on this website.</p>
   <p style="margin-top:2rem;font-size:.9rem;color:var(--grey-soft)">AnimoIT Ltd, 143 Tamworth
   Road, Long Eaton, Nottingham, NG10 1BY &middot;
   <a href="mailto:info@flo4paws.co.uk">info@flo4paws.co.uk</a> &middot; ICO Registration
