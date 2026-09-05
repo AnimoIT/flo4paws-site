@@ -1,10 +1,10 @@
 # W3 FINDINGS entries — 2026-09-04
 
-Append to `animoit-infra/claude/FINDINGS.md`. Numbering continues from F-81 (S216).
+W-series register entry (ruling A, W6b, 5 Sep 2026: W register lives in `flo4paws-site/docs/`, not `animoit-infra`). Numbering continues from F-81 (S216) under the WF- prefix.
 
 ---
 
-### F-82 | W3 | MEASURED | a constructed hostname is a claim, not a control
+### WF-82 | W3 | MEASURED | a constructed hostname is a claim, not a control
 
 R1 cell 18: the Lily control used `app.lilyvetphysiotherapy.co.uk`, built from a truncated line in the W1 handover. `curl` returned `000` — the host does not exist. The real host (`.com`) came from `grep server_name` on the enabled vhosts. Same shape later in the session: a page title typed from memory ("Muzzle training for nervous dogs, done kindly") failed an `assert count==1` against the real title.
 
@@ -12,7 +12,7 @@ R1 cell 18: the Lily control used `app.lilyvetphysiotherapy.co.uk`, built from a
 
 ---
 
-### F-83 | W3 | MEASURED | an unrun check became a recorded finding
+### WF-83 | W3 | MEASURED | an unrun check became a recorded finding
 
 W2 recorded "`Cache-Control: max-age=604800` on all assets including HTML — must fix before cutover" and issued a read-only block to confirm it. The block was never run. W3 measured: HTML has **no** Cache-Control; the 7d header is on `site.css`. The claim survived a session boundary as a blocker.
 
@@ -20,7 +20,7 @@ W2 recorded "`Cache-Control: max-age=604800` on all assets including HTML — mu
 
 ---
 
-### F-84 | W3 | MEASURED | `grep -c` has no stopping power, then had the wrong stopping power
+### WF-84 | W3 | MEASURED | `grep -c` has no stopping power, then had the wrong stopping power
 
 Three instances in one session, all `grep -c` used as a gate:
 1. R9 step 0: secret-shaped grep printed `1` (expected 0). `set -e` does not act on a printed count; the tree was pushed public before the hit was identified. (It was "password hashing" prose — harmless — but the control did not gate.)
@@ -31,7 +31,7 @@ Three instances in one session, all `grep -c` used as a gate:
 
 ---
 
-### F-85 | W3 | MEASURED | generated artefacts shipped without their generator in git
+### WF-85 | W3 | MEASURED | generated artefacts shipped without their generator in git
 
 W1 produced 23 pages from `gen.py` + `content.py` in the sandbox, tarred `build/`, and shipped the tar. The generator was never presented as a download, never committed anywhere, and was gone when the session ended. W2 then edited the output by hand — the only rational move given no source — and the served tree became the sole copy. Recovery cost a session of reverse-engineering plus a byte-identity proof.
 
@@ -39,7 +39,7 @@ W1 produced 23 pages from `gen.py` + `content.py` in the sandbox, tarred `build/
 
 ---
 
-### F-86 | W3 | MEASURED | a screenshot audit infers absence from the nav
+### WF-86 | W3 | MEASURED | a screenshot audit infers absence from the nav
 
 ChatGPT's audit marked eight items 🔴 "lost". Six existed on the box — pages not in the primary nav (Code of Ethics, Reviews, walks, guides), a redirect map that is invisible to a browser, and a guide whose body does not contain its own search phrase. The two real hits (thin credentials, no About) were the ones Ian had already spotted.
 
@@ -47,8 +47,8 @@ ChatGPT's audit marked eight items 🔴 "lost". Six existed on the box — pages
 
 ---
 
-### F-87 | W3 | MEASURED | the pipeline's exit status is `tail`'s, not the check's
+### WF-87 | W3 | MEASURED | the pipeline's exit status is `tail`'s, not the check's
 
-`python3 src/gen.py --check | tail -1; echo "exit=$?"` printed `exit=0` after a deliberate one-byte break, because `$?` was `tail`'s. The DIFF line above it was the actual evidence. Same for `| grep -c` (F-84 #3) and W2's changed-line count vs replacement count.
+`python3 src/gen.py --check | tail -1; echo "exit=$?"` printed `exit=0` after a deliberate one-byte break, because `$?` was `tail`'s. The DIFF line above it was the actual evidence. Same for `| grep -c` (WF-84 #3) and W2's changed-line count vs replacement count.
 
 ★ When proving a check can fail, capture the check's own status: run it unpiped, or `set -o pipefail`, or read its stdout for the assertion rather than `$?`. A falsification test whose exit code is someone else's has not falsified anything.
