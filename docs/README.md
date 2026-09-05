@@ -17,6 +17,8 @@ Register: the W-series keeps its own register in this directory (ruling A, W6b, 
 | `W5_BACKLOG_entries.md`, `W5_FINDINGS_entries.md` | W5 register entries (WBL-660-677, WF-92-100). |
 | `Session_Handover_2026-09-04_W6_WATCH.md` | W6: staging noindex, cert lineage, Flo's read-through text batch, the register collision as then understood. |
 | `W6_BACKLOG_entries.md`, `W6_FINDINGS_entries.md` | W6 register entries (WBL-678-687, WF-101-105); formerly provisional W6-BLn / W6-Fn. |
+| `W6b_BACKLOG_entries.md`, `W6b_FINDINGS_entries.md` | W6b register entries (WBL-688-690, WF-106-109): ruling A executed, Ads sitelinks, `/book-online` hole. |
+| `Session_Handover_2026-09-05_W6b_REGISTER.md` | W6b: ruling A executed, Ads sitelinks repointed, collision extent measured, `/book-online` hole found. |
 | `W7_Opening_Brief.md` | Brief for W7 ASSETS (badges, qualifications, `/about/` refactor). Needs a staging root first (WBL-681). |
 | `MANIFEST.sha256` | `sha256sum` of every `.md` in this directory. Verify with `cd docs && sha256sum -c MANIFEST.sha256`. Regenerate in the same PR as any docs edit. |
 

@@ -10,9 +10,10 @@ Prefixes: backlog `WBL-`, findings `WF-`. Entries live in `W<n>_BACKLOG_entries.
 | W4 | WBL-655-659 | WF-88-91 |
 | W5 | WBL-660-677 | WF-92-100 |
 | W6 | WBL-678-687 (was W6-BL1-10) | WF-101-105 (was W6-F1-5) |
+| W6b | WBL-688-690 | WF-106-109 |
 
-    NEXT_WBL: WBL-688
-    NEXT_WF: WF-106
+    NEXT_WBL: WBL-691
+    NEXT_WF: WF-110
 
 Census instruments: `grep -hoE '^### WBL-[0-9]+' docs/W*_entries.md | wc -l` and the same for `WF-`. A file existing is not registration; the heading count is.
 
