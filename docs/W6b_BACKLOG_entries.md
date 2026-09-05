@@ -6,10 +6,10 @@ state:    `curl` 404 on `/book-online`; zero mentions in `ia-v2.md` or the vhost
 remedy:   Add `location = /book-online { return 301 /contact/; }` and slash variants for `/my-services/` and `/blog/`; one reload with Flo told, five controls before and after, byte/sha guard (WBL-679).
 Claim evidence: MEASURED.
 ---
-### WBL-689 | OPEN | W6b | MEASURED | SMALL | Ads final URL expansion is on and chose `/my-services`, `/`, `/blog` on the old site by itself
+### WBL-689 | DONE | W6b | MEASURED | SMALL | Ads final URL expansion is on and chose `/my-services`, `/`, `/blog` on the old site by itself
 state:    Landing pages report rows marked "Automatically selected". On the new site it will pick pages nobody chose. Ian's task in Ads: campaign settings, Final URL expansion off or exclusions; re-read Landing pages at Stage D.
-remedy:   Ian, ten minutes in Ads. Box does nothing.
-Claim evidence: MEASURED (screenshot 5 Sep).
+remedy:   Done 5 Sep: Final URL expansion unchecked (AI Max asset optimization), DSA website field empty, Campaign URL options none. Screenshots in chat only.
+Claim evidence: MEASURED (screenshots 5 Sep).
 ---
 ### WBL-690 | DONE | W6b | RULED | SMALL | Ruling A executed: W register under WBL-/WF- in `docs/`, `W_REGISTER.md`, README table, manifest, `deploy/` comments
 state:    PR #14 (`39fa6f7`): 69 headings renamed across 14 files, four historical lines kept infra IDs verbatim, `sha256sum -c` 0 failures. `deploy/` comments renamed and installed without reload, sha parity restored (`964a0ed`, this branch). Sitelink half of WBL-674 done in Ads (11 sitelinks, two campaigns); ad final URLs were already `/`.

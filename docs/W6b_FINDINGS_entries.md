@@ -17,3 +17,7 @@ Edits 13 (12); diff lines 154 (151); README rows 15 (14); PR #13 (#14); `git cle
 `/book-online` was the final URL of a live sitelink with 496 impressions. Zero hits for `book-online` in `ia-v2.md` or the vhost. The census walked the site's own navigation and sitemap; it never read the Ads account.
 ★ A redirect census for a relaunch must include every URL paid traffic is sent to: ad final URLs, sitelinks, and Google's auto-expanded landing pages.
 ---
+### WF-110 | W6b | MEASURED | the Flo4Paws Ads campaign was Enabled, not paused, throughout W5-W6b
+Campaign settings panel: status Enabled, "Limited by budget"; 8 impressions and 1 click on 5 Sep before 08:00. The W6 handover and the W6b intro both said "paused". Ads were serving into the dead `/book-online` sitelink for the whole of launch day and this morning until the sitelink edit. Flo told 5 Sep.
+★ "Paused" is a status read off the Ads UI, not a memory of having paused it. Campaign status goes in the five-controls list for any session that touches Ads.
+---
