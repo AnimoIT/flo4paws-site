@@ -22,6 +22,16 @@ Written by the W6b instance at close. It is this instance's read; the box is can
 5. **W7 ASSETS** - unchanged; needs a staging root first (WBL-681). Badge artwork received from Ian on 5 Sep as WebP rasters (330x98, 500x149), not the vector originals; get the official SVGs from Apple/Google badge pages before use.
 6. S220 note: infra `NEXT_ID` BL-659 / `NEXT_F` F-82 were untouched by this session. Nothing in `animoit-infra` was written. S220 allocates freely from BL-659.
 
+## Addendum - Stage D and browser checks (Ian in browsers, 5 Sep 07:30-08:15 BST)
+- GA4 tag live on the new site: Realtime showed `/` and `/contact/`. `intake_form_start` fires on form focus (count 2 for 2 focuses); no `click` event alongside it. Standard Events report empty for today (24-48 h lag), not a fault.
+- `intake_submitted` is not sent by the site. It is a GA4 created event: `page_view` with URL containing `/thank-you/`, key event on stream "Flo4Paws Website 2026", imported into Ads as Primary under goal Contact. Proven by one manual visit to `/thank-you/` at ~07:55 BST: Realtime key events showed `intake_submitted` 1. **That one is a test, not a lead; exclude it from WBL-664's first-real reading.**
+- Ads conversion actions: goal Contact held `click (1)` Active/Primary - GA4's generic outbound-click key event steering bidding. Set to Secondary 5 Sep (WBL-663 closes: no double-fire on the form, but `click` was polluting conversions from elsewhere). `Contact_Thank_You_2` and `Booking_thank_you_2` (Wix pages) and `generate_lead` sit on the old stream "Flo4Paws Website"; retire with WBL-664 / WBL-662.
+- Campaign was **Enabled**, not paused (WF-110). Flo to be told.
+- WBL-689 done: Final URL expansion off, DSA empty, no tracking template.
+- Search Console: `sitemap.xml` Success, 25 discovered (matches the box). Pages report still pre-launch (20 indexed / 41 not, data to ~23 Aug); re-read in two weeks. Homepage re-index requested.
+- WBL-667 closes: Decline hides the bar and it stays hidden on reload (incognito); "Change my cookie choice" is a button on `/cookie-policy/` (once in `build/cookie-policy/index.html`), reachable from the footer link.
+- Sitelinks: all 11 across both campaigns repointed; `/book-online` no longer receives paid clicks. 301 still owed (WBL-688).
+
 ## Watch
 - Three arithmetic mislabels of my own edit counts (WF-108) and one write-before-assert (WF-106). Both patterns are in the intro's warnings and recurred anyway. Next instance: assert before write; label own-edit counts INFERRED.
 - `docs/MANIFEST.sha256` must be regenerated in the same PR as any docs edit; `sha256sum -c` printing 0 is the proof.
