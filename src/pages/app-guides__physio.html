@@ -1,0 +1,93 @@
+---
+{
+  "path": "/app-guides/physio/",
+  "title": "Physio guide | Flo 4 Paws app",
+  "description": "A short guide for physiotherapists working a Flo 4 Paws caseload in the companion app.",
+  "og_type": "website",
+  "og_image": "/img/flo-with-labrador.jpg",
+  "nav": null,
+  "sitemap": null,
+  "robots": "noindex,nofollow",
+  "ld": {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.flo4paws.co.uk/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Physio guide",
+            "item": "https://www.flo4paws.co.uk/app-guides/physio/"
+          }
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://www.flo4paws.co.uk/app-guides/physio/#page",
+        "about": {
+          "@id": "https://www.flo4paws.co.uk/#business"
+        }
+      }
+    ]
+  }
+}
+---
+<nav class="crumbs" aria-label="Breadcrumb"><div class="wrap"><a href="/">Home</a> / <span>Physio guide</span></div></nav><section class="hero hero-plain"><div class="wrap">
+  <div class="hero-text"><h1 class="q">Physio guide<span class="lede-line">Working a Flo&nbsp;4&nbsp;Paws caseload</span></h1></div>
+</div></section>
+<section><div class="wrap" style="max-width:44rem">
+  <p class="lede">A short guide for physiotherapists using the Flo&nbsp;4&nbsp;Paws companion app, from being added to a case through to prescribing and managing exercises.</p>
+
+  <div class="pg-steps">
+
+    <div class="pg-step">
+      <h2 class="head">Being added to a case</h2>
+      <div class="pg-noimg">Screenshot omitted &mdash; in-app screen</div>
+      <p>Your practice adds you to an animal as a co-owner so it appears in your app.</p>
+    </div>
+
+    <div class="pg-step">
+      <h2 class="head">Your caseload</h2>
+      <img src="/img/physio/02-caseload.png" alt="The physio caseload dashboard listing assigned animals" loading="lazy">
+      <p>The animals assigned to you.</p>
+    </div>
+
+    <div class="pg-step">
+      <h2 class="head">An animal&rsquo;s page</h2>
+      <img src="/img/physio/03-animal.png" alt="An animal's page showing prescribed resources and recent activity" loading="lazy">
+      <p>Prescribed resources and recent client activity for one animal.</p>
+    </div>
+
+    <div class="pg-step">
+      <h2 class="head">Prescribing a resource</h2>
+      <img src="/img/physio/04-prescribe.png" alt="Prescribing a resource with reps, frequency and notes" loading="lazy">
+      <img src="/img/physio/04b-add-resource.png" alt="Form to add a new resource to your library" loading="lazy">
+      <p>Assign a resource from your library, with reps, frequency and notes. If your library is empty, add a resource first using the form shown &mdash; give it a name, an optional description and an optional video URL, then <b>Add to library</b>.</p>
+    </div>
+
+    <div class="pg-step">
+      <h2 class="head">Working with an exercise</h2>
+      <div class="pg-noimg">Screenshot omitted &mdash; in-app screen</div>
+      <p>Viewing and managing a prescribed exercise.</p>
+    </div>
+
+  </div>
+
+  <p style="margin-top:2rem"><a class="btn line" href="/">Back to the home page</a></p>
+</div></section>
+<style>
+.pg-steps{counter-reset:pgstep}
+.pg-step{padding:1.6rem 0;border-bottom:1px solid var(--rule)}
+.pg-step:last-child{border-bottom:none}
+.pg-step h2.head{display:flex;align-items:center;gap:.75rem;margin:.2rem 0 1rem}
+.pg-step h2.head::before{counter-increment:pgstep;content:counter(pgstep);flex:none;width:2.1rem;height:2.1rem;border-radius:50%;background:var(--mint);color:var(--forest-deep);font-family:"Karla",sans-serif;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.pg-step img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:.6rem;margin:.4rem 0 .9rem;box-shadow:0 2px 10px rgba(25,71,2,.05)}
+.pg-noimg{border:1px dashed var(--rule);border-radius:.6rem;padding:1.4rem;text-align:center;color:var(--grey-soft);font-size:.9rem;margin:.4rem 0 .9rem;background:var(--mint-wash)}
+</style>
