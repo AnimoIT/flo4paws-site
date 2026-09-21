@@ -313,3 +313,10 @@ nav.main a.cta:hover{background:var(--forest-deep);color:var(--white)}
 .consent-bar p{margin:0;max-width:42rem}
 .consent-actions{display:flex;gap:.6rem;flex:none}
 .consent-bar .btn{padding:.55rem 1rem;font-size:.88rem}
+
+
+/* ---------- books-closed notice (waitlist) ---------- */
+.notice-closed{background:var(--mint-wash);border-bottom:1px solid var(--rule)}
+.notice-closed .wrap{padding-top:1.3rem;padding-bottom:1.3rem}
+.notice-closed p{margin:0;max-width:48rem;color:var(--grey)}
+.notice-closed strong{color:var(--forest);font-weight:700}
