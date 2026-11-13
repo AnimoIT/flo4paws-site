@@ -62,7 +62,7 @@ def latlon_to_bng_approx(lat, lon):
 
 
 def build_postcodes(out_dir):
-    cache = os.path.join(HERE, "cache", "codepo_gb.zip")
+    cache = os.path.join(qw.CACHE, "codepo_gb.zip")
     if not os.path.exists(cache):
         log("downloading Code-Point Open (CSV, about 20 MB)")
         data = fetch(CPO_URL)
