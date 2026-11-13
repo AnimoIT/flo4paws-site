@@ -94,7 +94,7 @@ DEDUPE_M = 1000             # one start point per walk area
 BIKE_WORDS = ("cycle", "bike", "mtb", "berm", "singletrack", "pump track", "bmx")
 CHECK_DOGS_WORDS = ("rspb", "rsbp", "nature reserve", "wildlife trust", "nnr")
 HERE = os.path.dirname(os.path.abspath(__file__))
-CACHE = os.path.join(HERE, "cache")
+CACHE = os.environ.get("QW_CACHE") or os.path.join(HERE, "cache")   # qw_refresh.py stages a copy
 OUT = os.path.join(HERE, "out")
 RATINGS = os.path.join(HERE, "my_ratings.csv")
 
