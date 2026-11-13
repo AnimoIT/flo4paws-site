@@ -75,6 +75,8 @@ CROME_HIGH = ("AC67", "LG03", "LG07", "LG11", "LG14", "LG20")  # winter OSR + le
 CROME_MID = ("AC17",)                                            # maize
 CROME_MIN_PROB = 0.4
 QUIET_SHOOTING_WORDS = ("laser", "airsoft", "archery", "paintball", "nerf")
+DISUSED_WORDS = ("disused", "dissused", "former", "abandoned", "dismantled")
+GAME_FADE_M, GAME_MAX = 500, 0.6   # woods tagged for shooting: seasonal game shoots
 ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
 ]
@@ -565,35 +567,55 @@ def density_grid(paths):
     return out
 
 
-def is_loud_shooting(t):
+def shooting_kind(t):
+    """'range' for gun clubs and firing ranges, 'game' for woods used for (seasonal)
+    game shoots, None for everything quiet, indoor or disused."""
     nm = low(t, "name", "description")
-    if any(w in nm for w in QUIET_SHOOTING_WORDS):
-        return False
+    if any(w in nm for w in QUIET_SHOOTING_WORDS + DISUSED_WORDS) or t.get("military") == "abandoned":
+        return None
+    if t.get("leisure") == "sports_centre":
+        return None                                  # indoor range
+    shooting = "shoot" in t.get("sport", "") or "clay" in t.get("sport", "")
+    if shooting and any(w in nm for w in ("shooting ground", "clay", "club", "range", "pigeon")):
+        return "range"                               # a named gun club or ground, even in a wood
+    if shooting and (t.get("landuse") in ("forest", "wood") or t.get("natural") == "wood"
+                     or (" wood" in " " + nm or "plantation" in nm or "forest" in nm)
+                     and t.get("leisure") not in ("shooting_ground", "pitch")):
+        return "game"
+    if t.get("military") in ("range", "danger_area"):
+        return "range"
     if t.get("landuse") == "military":
-        return "range" in nm
-    return ("shoot" in t.get("sport", "") or "clay" in t.get("sport", "")
-            or t.get("leisure") in ("shooting_ground", "shooting_range")
-            or t.get("military") in ("range", "danger_area"))
+        return "range" if "range" in nm else None
+    if shooting or t.get("leisure") in ("shooting_ground", "shooting_range"):
+        return "range"
+    return None
 
 
 def build_layers(feats, honey, paths, cycle_ids, bangs=None, crome=None):
     L = {n: Layer(n) for n in (
         "park_small", "park_large", "attractor", "dog", "residential",
-        "meadow", "farm", "road", "honeypot", "bike", "shoot", "scarer_hi", "scarer_mid")}
-    shoot_names = []
+        "meadow", "farm", "road", "honeypot", "bike", "shoot", "game", "scarer_hi", "scarer_mid")}
+    found = {"range": set(), "game": set()}
+    seen = set()
     for el in list((bangs or {}).values()) + list(feats.values()):
+        if (el["type"], el["id"]) in seen:
+            continue
+        seen.add((el["type"], el["id"]))
         t = el.get("tags", {})
-        if not is_loud_shooting(t):
+        sk = shooting_kind(t)
+        if not sk:
             continue
         kind, data = element_points(el)
         if not kind:
             continue
+        lay = L["shoot" if sk == "range" else "game"]
         if kind in ("ring", "rings") and _area(data, kind) < 4e6:
-            add_area(L["shoot"], kind, data)
+            add_area(lay, kind, data)
         else:
-            add_point(L["shoot"], kind, data)
-        shoot_names.append(t.get("name", "unnamed"))
-    log(f"loud shooting sites: {len(set(shoot_names))} ({', '.join(sorted(set(shoot_names))[:8])})")
+            add_point(lay, kind, data)
+        found[sk].add(t.get("name", f"unnamed {el['type']}/{el['id']}"))
+    log(f"shooting ranges/grounds: {len(found['range'])} ({', '.join(sorted(found['range']))})")
+    log(f"game-shoot woods: {len(found['game'])} ({', '.join(sorted(found['game']))})")
     for key, lay in (("high", "scarer_hi"), ("mid", "scarer_mid")):
         for la, lo in (crome or {}).get(key, []):
             L[lay].mark_xy(*to_xy(la, lo))
@@ -775,6 +797,7 @@ def score_paths(paths, L, dens, cycle_ids, walk_ids, ratings):
             )
             bkn += 0.7 * decay(L["bike"].at(x, y), 120)
             bg += max(1.0 * decay(max(0.0, L["shoot"].at(x, y) - SHOOT_FULL_M), SHOOT_FADE_M),
+                      GAME_MAX * decay(L["game"].at(x, y), GAME_FADE_M),
                       SCARER_MAX * decay(L["scarer_hi"].at(x, y), SCARER_RADIUS_M),
                       0.6 * SCARER_MAX * decay(L["scarer_mid"].at(x, y), SCARER_RADIUS_M))
             pd += p
