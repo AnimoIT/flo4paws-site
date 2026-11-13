@@ -304,14 +304,16 @@
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", function () {
         map.addSource("qwf-paths", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        // draw paths beneath the basemap's labels so place names stay readable
+        var firstLabel = (map.getStyle().layers.filter(function (l) { return l.type === "symbol"; })[0] || {}).id;
         map.addLayer({ id: "qwf-paths-casing", type: "line", source: "qwf-paths",
-          paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 2, 15, 6], "line-opacity": 0.8 } });
+          paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 2, 15, 6], "line-opacity": 0.8 } }, firstLabel);
         map.addLayer({ id: "qwf-paths", type: "line", source: "qwf-paths",
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": ["step", ["get", "s"], "#c0392b", AMBER, "#e69500", GREEN, "#1e8a4c"],
             "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 4]
-          } });
+          } }, firstLabel);
         map.on("click", "qwf-paths", pathPopup);
         map.on("mouseenter", "qwf-paths", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "qwf-paths", function () { map.getCanvas().style.cursor = ""; });
