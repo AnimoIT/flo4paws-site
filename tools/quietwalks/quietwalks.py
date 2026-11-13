@@ -29,6 +29,7 @@ import array
 import csv
 import json
 import math
+import re
 import os
 import sys
 import time
@@ -75,6 +76,7 @@ CROME_HIGH = ("AC67", "LG03", "LG07", "LG11", "LG14", "LG20")  # winter OSR + le
 CROME_MID = ("AC17",)                                            # maize
 CROME_MIN_PROB = 0.4
 QUIET_SHOOTING_WORDS = ("laser", "airsoft", "archery", "paintball", "nerf")
+RANGE_WORD = re.compile(r"\brange\b")     # "Rifle Range" yes, "Sherwood Rangers" no
 DISUSED_WORDS = ("disused", "dissused", "former", "abandoned", "dismantled")
 GAME_FADE_M, GAME_MAX = 500, 0.6   # woods tagged for shooting: seasonal game shoots
 ENDPOINTS = [
@@ -576,7 +578,7 @@ def shooting_kind(t):
     if t.get("leisure") == "sports_centre":
         return None                                  # indoor range
     shooting = "shoot" in t.get("sport", "") or "clay" in t.get("sport", "")
-    if shooting and any(w in nm for w in ("shooting ground", "clay", "club", "range", "pigeon")):
+    if shooting and (any(w in nm for w in ("shooting ground", "clay", "club", "pigeon")) or RANGE_WORD.search(nm)):
         return "range"                               # a named gun club or ground, even in a wood
     if shooting and (t.get("landuse") in ("forest", "wood") or t.get("natural") == "wood"
                      or (" wood" in " " + nm or "plantation" in nm or "forest" in nm)
@@ -585,7 +587,7 @@ def shooting_kind(t):
     if t.get("military") in ("range", "danger_area"):
         return "range"
     if t.get("landuse") == "military":
-        return "range" if "range" in nm else None
+        return "range" if RANGE_WORD.search(nm) else None
     if shooting or t.get("leisure") in ("shooting_ground", "shooting_range"):
         return "range"
     return None
