@@ -2,7 +2,11 @@
    Data: /walks/finder-data/v1/ (index.json, chunks/<k>.json, starts.json) and
    /walks/finder-data/postcodes/<OUTWARD>.json, built by the quietwalks pipeline.
    Everything a visitor types stays in the browser: only the postcode district
-   file (e.g. NG13.json) is requested. */
+   file (e.g. NG13.json) is requested.
+   Analytics (14 Nov 2026): four GA events say only that something happened --
+   qwf_search {method}, qwf_not_covered {method}, qwf_results {count}, qwf_directions.
+   No postcode, location, area or slider answer is ever sent. gtag and the visitor's
+   consent choice are set up by the page head (Consent Mode), not here. */
 (function () {
   "use strict";
   var DATA = "/walks/finder-data/v1/";
@@ -27,6 +31,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var state = { index: null, chunks: {}, rows: [], starts: null, point: null, map: null,
                 markers: [], levels: {} };
+
+  function track(name, params) {
+    try { if (typeof window.gtag === "function") window.gtag("event", name, params || {}); } catch (e) { /* never break the finder */ }
+  }
 
   function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
   function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -130,9 +138,9 @@
     getJSON(PC + outward + ".json").then(function (book) {
       var p = book[pc];
       if (!p) { status("I couldn't find that postcode. Check it, or use your location instead.", true); return; }
-      setPoint([p[0], p[1]], outward + " " + pc.slice(-3));
+      setPoint([p[0], p[1]], outward + " " + pc.slice(-3), "postcode");
     }).catch(function (e) {
-      if (e.status === 404) status(notCovered(), true);
+      if (e.status === 404) { track("qwf_not_covered", { method: "postcode" }); status(notCovered(), true); }
       else status("Sorry, the postcode lookup didn't load. Please try again.", true);
     });
   }
@@ -146,15 +154,16 @@
     if (!navigator.geolocation) { status("Your browser can't share a location. Please enter a postcode.", true); return; }
     status("Finding your location…");
     navigator.geolocation.getCurrentPosition(function (pos) {
-      setPoint([pos.coords.latitude, pos.coords.longitude], "your location");
+      setPoint([pos.coords.latitude, pos.coords.longitude], "your location", "location");
     }, function () {
       status("Location wasn't shared. Please enter your postcode instead.", true);
     }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
   }
 
-  function setPoint(pt, label) {
+  function setPoint(pt, label, method) {
     var c = state.index.centre;
-    if (km(pt, c) > state.index.radius_m / 1000 + 5) { status(notCovered(), true); return; }
+    if (km(pt, c) > state.index.radius_m / 1000 + 5) { track("qwf_not_covered", { method: method }); status(notCovered(), true); return; }
+    track("qwf_search", { method: method });
     state.point = pt; state.label = label;
     status("Loading paths near " + label + "…");
     var keys = chunksNear(pt, NEAR_KM + state.index.start_radius_m / 1000 + 1);
@@ -216,6 +225,7 @@
     });
     renderList(keep);
     renderMarkers(keep, fit);
+    if (fit) track("qwf_results", { count: keep.length });   // a new search, not a slider change
     status(keep.length ? "Showing quieter paths and start points near " + state.label + "." :
       "No start points with enough quieter path within " + NEAR_KM + " km of " + state.label +
       ". Try easing a slider.", !keep.length);
@@ -330,6 +340,11 @@
     $("qwf-form").addEventListener("submit", function (e) { e.preventDefault(); findPostcode($("qwf-postcode").value); });
     $("qwf-locate").addEventListener("click", useLocation);
     $("qwf-quietonly").addEventListener("change", function () { refresh(false); });
+    // Directions links live in the list and in map popups; one listener catches both
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="https://www.google.com/maps/dir/"]');
+      if (a) track("qwf_directions");
+    });
     getJSON(DATA + "index.json").then(function (idx) {
       state.index = idx;
       $("qwf-attrib").insertAdjacentText("beforeend", " Data updated " + idx.built + ".");

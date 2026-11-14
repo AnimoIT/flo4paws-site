@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);}
   var v=null;try{v=localStorage.getItem(K);}catch(x){}
   if(v!=='granted'&&v!=='denied'){show();}
-  var r=document.getElementById('consent-reset');
-  if(r){r.addEventListener('click',function(){try{localStorage.removeItem(K);}catch(x){}apply('denied');show();});}
+  document.querySelectorAll('#consent-reset,[data-consent-reset]').forEach(function(r){
+    r.addEventListener('click',function(){try{localStorage.removeItem(K);}catch(x){}apply('denied');show();});});
   var f=document.querySelector('a[href="https://app.flo4paws.co.uk/intake-form/flo4paws/"]');
   if(f){f.addEventListener('click',function(){if(typeof gtag==='function'){gtag('event','intake_form_start');}});}
 });
