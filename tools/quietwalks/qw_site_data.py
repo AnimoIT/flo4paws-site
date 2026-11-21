@@ -4,6 +4,7 @@
   python3 qw_site_data.py postcodes OUT_DIR   # OS Code-Point Open -> OUT_DIR/postcodes/<OUTWARD>.json
   python3 qw_site_data.py basemap OUT_DIR     # Protomaps daily build -> OUT_DIR/basemap.pmtiles
   python3 qw_site_data.py all OUT_DIR
+  python3 qw_site_data.py --region uk all OUT_DIR   # any of the above, for one region (default uk)
 
 Uses the coverage (centre and radius) from quietwalks.py in the same folder.
 Pure standard library, plus the pmtiles CLI binary it downloads into ./bin.
@@ -28,6 +29,10 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+if "--region" in sys.argv:                 # hand the region to quietwalks via the environment
+    _i = sys.argv.index("--region")
+    os.environ["QW_REGION"] = sys.argv[_i + 1]
+    del sys.argv[_i:_i + 2]
 import quietwalks as qw  # noqa: E402
 
 UA = {"User-Agent": "quietwalks-site/1.0 (personal/Flo4Paws)"}
@@ -62,6 +67,9 @@ def latlon_to_bng_approx(lat, lon):
 
 
 def build_postcodes(out_dir):
+    if qw.REGION["places"] != "codepoint":
+        raise SystemExit(f"postcodes: region {qw.REGION_ID} uses place source {qw.REGION['places']!r}, "
+                         "not OS Code-Point Open")
     cache = os.path.join(qw.CACHE, "codepo_gb.zip")
     if not os.path.exists(cache):
         log("downloading Code-Point Open (CSV, about 20 MB)")

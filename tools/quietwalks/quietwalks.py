@@ -36,9 +36,33 @@ import time
 import urllib.parse
 import urllib.request
 
+# ---------------------------------------------------------------- region
+# The coverage area and its data sources live in regions/<id>.json.
+# Pick one with --region <id> or QW_REGION; default "uk" (Bingham).
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _region_id():
+    if "--region" in sys.argv:
+        i = sys.argv.index("--region")
+        if i + 1 >= len(sys.argv) or sys.argv[i + 1].startswith("-"):
+            raise SystemExit("--region needs a region id, e.g. --region uk")
+        return sys.argv[i + 1]
+    return os.environ.get("QW_REGION") or "uk"
+
+
+REGION_ID = _region_id()
+if not os.path.exists(os.path.join(HERE, "regions", REGION_ID + ".json")):
+    raise SystemExit(f"no region file regions/{REGION_ID}.json next to quietwalks.py")
+with open(os.path.join(HERE, "regions", REGION_ID + ".json"), encoding="utf-8") as _f:
+    REGION = json.load(_f)
+CENTRE_LAT, CENTRE_LON = REGION["centre"]
+RADIUS_M = REGION["radius_m"]
+PLACE_NAME = REGION["place_name"]
+CROPS = REGION["crops"]                        # {"source": "crome", ...} or {"source": "none"}
+ATTRIBUTION = REGION["attribution"]
+
 # ---------------------------------------------------------------- settings
-CENTRE_LAT, CENTRE_LON = 52.9520, -0.9530      # Bingham
-RADIUS_M = 30000
 CELL_M = 50                                    # raster resolution
 TILES = 3                                      # TILES x TILES Overpass requests
 
@@ -71,7 +95,6 @@ SHOOT_FULL_M, SHOOT_FADE_M = 1000, 1500   # full strength to 1 km, fading out by
 SCARER_RADIUS_M = 500
 SCARER_MAX = 0.7            # crop-map scarer risk never exceeds this
 CROME_BASE = "https://environment.data.gov.uk/spatialdata/crop-map-of-england-2024/ogc/features/v1"
-CROME_COUNTIES = ("Nottinghamshire", "Leicestershire", "Lincolnshire", "Derbyshire")
 CROME_HIGH = ("AC67", "LG03", "LG07", "LG11", "LG14", "LG20")  # winter OSR + legumes
 CROME_MID = ("AC17",)                                            # maize
 CROME_MIN_PROB = 0.4
@@ -93,9 +116,8 @@ BIG_PARK_PENALTY = 8        # rank points lost if the start car park itself is l
 DEDUPE_M = 1000             # one start point per walk area
 BIKE_WORDS = ("cycle", "bike", "mtb", "berm", "singletrack", "pump track", "bmx")
 CHECK_DOGS_WORDS = ("rspb", "rsbp", "nature reserve", "wildlife trust", "nnr")
-HERE = os.path.dirname(os.path.abspath(__file__))
-CACHE = os.environ.get("QW_CACHE") or os.path.join(HERE, "cache")   # qw_refresh.py stages a copy
-OUT = os.path.join(HERE, "out")
+CACHE = os.environ.get("QW_CACHE") or os.path.join(HERE, REGION["cache"])   # qw_refresh.py stages a copy
+OUT = os.path.join(HERE, REGION["out"])
 RATINGS = os.path.join(HERE, "my_ratings.csv")
 
 # ---------------------------------------------------------------- geometry
@@ -251,7 +273,7 @@ def fetch_crome(offline, refresh):
     dlon = (RADIUS_M + 1000) / KX
     bbox = f"{CENTRE_LON - dlon:.4f},{CENTRE_LAT - dlat:.4f},{CENTRE_LON + dlon:.4f},{CENTRE_LAT + dlat:.4f}"
     out = {"high": [], "mid": []}
-    for county in CROME_COUNTIES:
+    for county in CROPS["counties"]:
         coll = f"Crop_Map_of_England_2024_{county}"
         for code in CROME_HIGH + CROME_MID:
             fn = os.path.join(CACHE, f"crome_{county}_{code}.json")
@@ -307,6 +329,16 @@ def fetch_crome(offline, refresh):
                 time.sleep(1)
             out["high" if code in CROME_HIGH else "mid"].extend(pts or [])
     return out
+
+
+def fetch_crops(offline, refresh):
+    """Scarer-prone crop centroids from the region's crop source."""
+    src = CROPS["source"]
+    if src == "crome":
+        return fetch_crome(offline, refresh)
+    if src == "none":
+        return {"high": [], "mid": []}
+    raise SystemExit(f"unknown crop source {src!r} in regions/{REGION_ID}.json")
 
 
 def fetch_all(offline, refresh):
@@ -967,7 +999,7 @@ S.forEach((s,i)=>{const [lat,lon,name,gkm,tkm,mean,dkm,flag]=s;
  const icon=L.divIcon({className:'',html:`<div class="num">${i+1}</div>`,iconSize:[22,22]});
  const mk=L.marker([lat,lon],{icon}).addTo(map).bindPopup(`<b>#${i+1} ${name||'Parking'}</b>`+
   `<br>${gkm.toFixed(1)} km of quiet path within 1.5 km (of ${tkm.toFixed(1)} km)`+
-  `<br>Average score ${mean.toFixed(0)} &middot; ${dkm.toFixed(1)} km from Bingham`+
+  `<br>Average score ${mean.toFixed(0)} &middot; ${dkm.toFixed(1)} km from __PLACE__`+
   (flag?`<br><b style="color:#b45309">${flag}</b>`:'')+
   `<br><a target=_blank href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}">Directions</a>`);
  const d=document.createElement('div');d.textContent=`${i+1}. ${name||'Parking'} - ${gkm.toFixed(1)} km quiet`;
@@ -1069,8 +1101,7 @@ def export_finder(out_dir, scored, parking, places, reserves):
         "chunks": bbox,
         "paths": len(scored),
         "starts": len(starts),
-        "attribution": "Map data \u00a9 OpenStreetMap contributors (ODbL). Crop data: Rural Payments "
-                       "Agency CROME 2024, Open Government Licence.",
+        "attribution": ATTRIBUTION,
     }
     with open(os.path.join(tmp, "index.json"), "w", encoding="utf-8") as f:
         json.dump(index, f, indent=1)
@@ -1097,6 +1128,7 @@ def write_outputs(scored, starts):
             .replace("__LAT__", str(CENTRE_LAT)).replace("__LON__", str(CENTRE_LON))
             .replace("__R__", str(RADIUS_M)).replace("__G1__", str(GREEN - 1))
             .replace("__G__", str(GREEN)).replace("__A__", str(AMBER))
+            .replace("__PLACE__", PLACE_NAME)
             .replace("__BUILT__", time.strftime("%d %b %Y")))
     fn = os.path.join(OUT, "quietwalks_map.html")
     with open(fn, "w", encoding="utf-8") as f:
@@ -1128,14 +1160,14 @@ def main():
     offline = "--offline" in sys.argv
     refresh = "--refresh" in sys.argv
     t0 = time.time()
-    log(f"quietwalks: centre {CENTRE_LAT},{CENTRE_LON} radius {RADIUS_M / 1000:.0f} km, "
+    log(f"quietwalks [{REGION_ID}]: centre {CENTRE_LAT},{CENTRE_LON} radius {RADIUS_M / 1000:.0f} km, "
         f"grid {NX}x{NY} @ {CELL_M} m")
     data = fetch_all(offline, refresh)
     cycle_ids = {k[1] for k in data["cycleroutes"] if k[0] == "way"}
     walk_ids = {k[1] for k in data["walkroutes"] if k[0] == "way"}
     log(f"paths {len(data['paths'])}, features {len(data['features'])}, "
         f"cycle-route ways {len(cycle_ids)}, walk-route ways {len(walk_ids)}")
-    crome = fetch_crome(offline, refresh)
+    crome = fetch_crops(offline, refresh)
     L, parking, dens, places, reserves = build_layers(
         data["features"], data["honeypots"], data["paths"], cycle_ids, data["bangs"], crome)
     log(f"places {len(places)}, nature reserves {len(reserves)}")
