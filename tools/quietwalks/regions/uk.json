@@ -1,0 +1,31 @@
+{
+ "id": "uk",
+ "place_name": "Bingham",
+ "centre": [
+  52.952,
+  -0.953
+ ],
+ "radius_m": 30000,
+ "cache": "cache",
+ "out": "out",
+ "places": "codepoint",
+ "crops": {
+  "source": "crome",
+  "counties": [
+   "Nottinghamshire",
+   "Leicestershire",
+   "Lincolnshire",
+   "Derbyshire"
+  ]
+ },
+ "attribution": "Map data © OpenStreetMap contributors (ODbL). Crop data: Rural Payments Agency CROME 2024, Open Government Licence.",
+ "quarterly_site_data": true,
+ "local_data": "data/uk",
+ "publish": {
+  "ssh": "qwpush@204.168.132.118",
+  "push_key": "~/.ssh/qw_push_uk",
+  "swap_key": "~/.ssh/qw_swap_uk"
+ },
+ "public_index": "https://www.flo4paws.co.uk/walks/finder-data/v1/index.json",
+ "max_age_days": 40
+}
