@@ -15,9 +15,21 @@
   "01"
  ],
  "crops": {
-  "source": "none"
+  "source": "rpg",
+  "layer": "RPG.LATEST:parcelles_graphiques",
+  "geom_field": "geom",
+  "high_groups": [
+   "5",
+   "6",
+   "8",
+   "15"
+  ],
+  "mid_groups": [
+   "2"
+  ],
+  "note": "RPG code_group: 5 colza, 6 tournesol, 8 proteagineux, 15 legumineuses a grains (high); 2 mais (mid). Ruled R-B3a, S370."
  },
- "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL).",
+ "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL). Cultures : IGN – RPG, Licence Ouverte 2.0.",
  "quarterly_site_data": false,
  "local_data": "data/fr"
 }
