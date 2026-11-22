@@ -64,3 +64,23 @@ Box side (`qwpush` user, `~qwpush/.ssh/authorized_keys`):
 Roll back a bad month on the box: `mv /var/www/quietwalks-data/v1 /var/www/quietwalks-data/v1.bad && mv /var/www/quietwalks-data/v1.prev /var/www/quietwalks-data/v1`,
 then do the same in `~/quietwalks/data/uk/` on the pipeline server so its next check
 compares against what is live.
+
+## France (`regions/fr.json`), in development
+
+Mâcon + Cluny, 30 km round 46.371 N, 4.744 E. Built on zooscape-prod in
+`~quietwalks/quietwalks-fr-dev/` (not published yet; publishing comes with the
+French pages, build step B6 of the France spec).
+
+- **Crops:** `crops.source = "rpg"` reads IGN RPG parcels from the Géoplateforme
+  WFS (`RPG.LATEST:parcelles_graphiques`), filtered on the server by `code_group`:
+  high 5 colza, 6 tournesol, 8 protéagineux, 15 légumineuses à grains; mid 2 maïs.
+  Fields are marked along their outline. Licence Ouverte 2.0 ("IGN – RPG").
+- **Place search:** `places = "communes"`; `python3 qw_site_data.py --region fr communes OUT`
+  writes `communes.json` (name, INSEE, postcodes, centre, population) from
+  geo.api.gouv.fr for `communes_depts` 71, 69, 01. Licence Ouverte 2.0.
+- **Extra starts:** `extra_starts` adds village centres and `highway=trailhead`
+  as starts, after every car park, flagged `noparking`, 1 km from any kept start.
+- **First counts (22 Nov 2026):** 28,903 paths, 8,671 km; 640 starts (587 car
+  parks + 53 villages; 0 trailheads mapped); 318 communes; RPG 8,599 parcels.
+- **UK is unaffected:** with the same cache, the UK `v1/` is byte-identical apart
+  from `built` (S370).

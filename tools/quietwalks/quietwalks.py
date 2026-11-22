@@ -59,7 +59,7 @@ with open(os.path.join(HERE, "regions", REGION_ID + ".json"), encoding="utf-8") 
 CENTRE_LAT, CENTRE_LON = REGION["centre"]
 RADIUS_M = REGION["radius_m"]
 PLACE_NAME = REGION["place_name"]
-CROPS = REGION["crops"]                        # {"source": "crome", ...} or {"source": "none"}
+CROPS = REGION["crops"]                        # {"source": "crome"|"rpg"|"none", ...}
 ATTRIBUTION = REGION["attribution"]
 
 # ---------------------------------------------------------------- settings
@@ -197,6 +197,13 @@ out tags geom;""",
 }
 
 
+EXTRA = REGION.get("extra_starts") or {}     # Q2 (S368): non-parking starts, France only for now
+if EXTRA.get("trailheads"):
+    QUERIES["trailheads"] = """
+nwr["highway"="trailhead"]({b});
+out tags center;"""
+
+
 def overpass(query):
     body = "[out:json][timeout:300][maxsize:536870912];" + query
     data = urllib.parse.urlencode({"data": body}).encode()
@@ -331,11 +338,97 @@ def fetch_crome(offline, refresh):
     return out
 
 
+RPG_WFS = "https://data.geopf.fr/wfs/ows"
+RPG_PAGE = 5000
+
+
+def rpg_points(geom):
+    """Outer-ring vertices (rounded to ~10 m) of a parcel polygon, as (lat, lon)."""
+    g = geom or {}
+    polys = g.get("coordinates") or []
+    if g.get("type") == "Polygon":
+        polys = [polys]
+    pts = set()
+    for poly in polys:
+        for lon, lat in (poly[0] if poly else []):
+            if abs(lon) < 180 and abs(lat) < 90:
+                pts.add((round(lat, 4), round(lon, 4)))
+    return pts
+
+
+def fetch_rpg(offline, refresh):
+    """French RPG parcels in scarer-prone crop groups, as [lat, lon] outline points, cached per tile.
+
+    A field is marked along its whole outline (not just its centre), because RPG
+    parcels are fields of every size, unlike CROME's 1 ha hexagons.
+    """
+    layer = CROPS.get("layer", "RPG.LATEST:parcelles_graphiques")
+    groups = {str(g): "high" for g in CROPS["high_groups"]}
+    groups.update({str(g): "mid" for g in CROPS["mid_groups"]})
+    cql = "code_group IN (" + ",".join(f"'{g}'" for g in sorted(groups)) + ")"
+    out = {"high": [], "mid": []}
+    for ti, (ts, tw, tn, te) in enumerate(bbox_tiles()):
+        fn = os.path.join(CACHE, f"rpg_{ti}.json")
+        if os.path.exists(fn) and not refresh:
+            with open(fn) as f:
+                got = json.load(f)
+        elif offline:
+            log(f"  missing cache {fn} (offline) - skipped")
+            continue
+        else:
+            got, start, failed, seen = {"high": set(), "mid": set()}, 0, False, set()
+            while True:
+                q = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": layer,
+                     "OUTPUTFORMAT": "application/json", "SRSNAME": "EPSG:4326",
+                     "BBOX": f"{ts},{tw},{tn},{te},urn:ogc:def:crs:EPSG::4326",
+                     "COUNT": str(RPG_PAGE), "STARTINDEX": str(start), "SORTBY": "num_parcel"}
+                if CROPS.get("geom_field"):
+                    # server-side crop filter; BBOX can't sit beside a filter, so it moves into the CQL
+                    q.pop("BBOX")
+                    q["CQL_FILTER"] = f"{cql} AND BBOX({CROPS['geom_field']},{tw},{ts},{te},{tn},'EPSG:4326')"
+                js = None
+                for attempt in range(4):
+                    try:
+                        js = http_json(RPG_WFS + "?" + urllib.parse.urlencode(q))
+                        break
+                    except Exception as e:  # noqa: BLE001
+                        log(f"  rpg error {e}; retry")
+                        time.sleep(10 * (attempt + 1))
+                if js is None:
+                    failed = True
+                    break
+                feats = js.get("features", [])
+                for ft in feats:
+                    pr = ft.get("properties") or {}
+                    band = groups.get(str(pr.get("code_group")))
+                    if not band or pr.get("num_parcel") in seen:
+                        continue   # guard: server ignored the filter, or a page overlap
+                    seen.add(pr.get("num_parcel"))
+                    got[band] |= rpg_points(ft.get("geometry"))
+                start += len(feats)
+                if len(feats) < RPG_PAGE:
+                    break
+                time.sleep(1)
+            if failed:
+                log(f"  rpg tile {ti + 1}/9: download failed - not cached, rerun later")
+                continue
+            got = {k: sorted([list(p) for p in v]) for k, v in got.items()}
+            with open(fn, "w") as f:
+                json.dump(got, f)
+            log(f"rpg tile {ti + 1}/9: {len(seen)} parcels, points high {len(got['high'])} mid {len(got['mid'])}")
+            time.sleep(1)
+        out["high"].extend(got.get("high", []))
+        out["mid"].extend(got.get("mid", []))
+    return out
+
+
 def fetch_crops(offline, refresh):
     """Scarer-prone crop centroids from the region's crop source."""
     src = CROPS["source"]
     if src == "crome":
         return fetch_crome(offline, refresh)
+    if src == "rpg":
+        return fetch_rpg(offline, refresh)
     if src == "none":
         return {"high": [], "mid": []}
     raise SystemExit(f"unknown crop source {src!r} in regions/{REGION_ID}.json")
@@ -1013,7 +1106,7 @@ EXPORT_MIN_KM = 3.0          # a start point needs this much path within START_R
 EXPORT_DEDUPE_M = 300
 
 
-def export_finder(out_dir, scored, parking, places, reserves):
+def export_finder(out_dir, scored, parking, places, reserves, trailheads=()):
     """Write the public finder data: trigger values per path (no scores, no personal
     ratings) and every usable start point with the ids of the paths around it.
     The page combines the values with each visitor's own trigger sliders."""
@@ -1050,11 +1143,20 @@ def export_finder(out_dir, scored, parking, places, reserves):
             bucket.setdefault((int(x // 500), int(y // 500)), set()).add(i)
     R = START_RADIUS_M
     starts, kept = [], []
-    for pk in sorted(parking, key=lambda q: q["big"]):
+    cands = sorted(parking, key=lambda q: q["big"])
+    # Q2: trailheads, then village centres, as starts with no mapped car park. They come
+    # after every car park and must be DEDUPE_M from any start already kept.
+    for x, y, nm in trailheads:
+        cands.append({"x": x, "y": y, "name": nm, "big": False, "extra": "trailhead"})
+    for x, y, nm, kind in places:
+        if kind in EXTRA.get("places", ()):
+            cands.append({"x": x, "y": y, "name": nm, "big": False, "extra": kind})
+    for pk in cands:
         x0, y0 = pk["x"], pk["y"]
         if x0 * x0 + y0 * y0 > RADIUS_M ** 2:
             continue
-        if any((x0 - k[0]) ** 2 + (y0 - k[1]) ** 2 < EXPORT_DEDUPE_M ** 2 for k in kept):
+        gap = DEDUPE_M if pk.get("extra") else EXPORT_DEDUPE_M
+        if any((x0 - k[0]) ** 2 + (y0 - k[1]) ** 2 < gap ** 2 for k in kept):
             continue
         kx, ky, rr = int(x0 // 500), int(y0 // 500), R // 500 + 1
         cand = set()
@@ -1076,8 +1178,14 @@ def export_finder(out_dir, scored, parking, places, reserves):
         near = min(places, key=lambda q: (q[0] - x0) ** 2 + (q[1] - y0) ** 2, default=None)
         if near and (near[0] - x0) ** 2 + (near[1] - y0) ** 2 > 3000 ** 2:
             near = None
-        name = pk["name"] or (f"Parking near {near[2]}" if near else "Parking")
+        if pk.get("extra") == "trailhead":
+            name = pk["name"] or (EXTRA.get("trailhead_label", "Trailhead") +
+                                  (f" – {near[2]}" if near else ""))
+        else:
+            name = pk["name"] or (f"Parking near {near[2]}" if near else "Parking")
         flags = []
+        if pk.get("extra"):
+            flags.append("noparking")
         if pk["big"]:
             flags.append("big")
         if any((q[0] - x0) ** 2 + (q[1] - y0) ** 2 < 1000 ** 2 for q in reserves) or \
@@ -1178,8 +1286,19 @@ def main():
     gk = sum(p["len"] for p in scored if p["score"] >= GREEN) / 1000
     log(f"scored {len(scored)} paths, {km:.0f} km total, {gk:.0f} km quiet (>= {GREEN})")
     starts = rank_starts(parking, scored, places, reserves)
+    trailheads = []
+    for el in data.get("trailheads", {}).values():
+        c = el.get("center") or ({"lat": el["lat"], "lon": el["lon"]} if "lat" in el else None)
+        if c:
+            x, y = to_xy(c["lat"], c["lon"])
+            trailheads.append((x, y, (el.get("tags") or {}).get("name", "")))
+    if EXTRA:
+        log(f"extra start candidates: trailheads {len(trailheads)}, places of kind "
+            f"{'/'.join(EXTRA.get('places', ()))} "
+            f"{sum(1 for q in places if q[3] in EXTRA.get('places', ()))}")
     if "--export" in sys.argv:
-        export_finder(sys.argv[sys.argv.index("--export") + 1], scored, parking, places, reserves)
+        export_finder(sys.argv[sys.argv.index("--export") + 1], scored, parking, places, reserves,
+                      trailheads)
     fn, size = write_outputs(scored, starts)
     log(f"wrote {fn} ({size / 1e6:.1f} MB) and top_starts.csv ({len(starts)} start points)")
     for i, s in enumerate(starts[:10], 1):
