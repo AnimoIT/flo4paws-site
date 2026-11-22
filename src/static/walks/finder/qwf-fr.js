@@ -11,6 +11,13 @@
   var LANG = P.lang === "en" ? "en" : "fr";
   var R = window.QWFRules;
   var DEPT_NAMES = { "71": "Saône-et-Loire", "69": "Rhône", "01": "Ain" };
+  // Each préfecture's hunting page: the yearly orders are posted there, same address
+  // every season. Linked from the hunting banner (S376).
+  var HUNT_URLS = {
+    "71": "https://www.saone-et-loire.gouv.fr/Actions-de-l-Etat/Environnement-risques-naturels-et-technologiques/Chasse-et-gestion-de-la-faune-sauvage-chassable/Gestion-de-la-faune-sauvage-chassable",
+    "69": "https://www.rhone.gouv.fr/Actions-de-l-Etat/Environnement-transition-ecologique-risques-naturels-et-technologiques/Chasse-peche/Chasse/Arretes-prefectoraux/Ouverture-et-fermeture-de-la-chasse",
+    "01": "https://www.ain.gouv.fr/Actions-de-l-Etat/Environnement-risques-naturels-et-technologiques/Chasse-Faune-sauvage"
+  };
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   var now = new Date();
@@ -66,6 +73,7 @@
         return n + " : " + lv;
       },
       seasonAdvice: "En forêt et en lisière, cherchez les panneaux jaunes « Chasse en cours » ou « Battue en cours » et changez d'itinéraire.",
+      rulesHint: "Cliquez sur un département pour lire les règles de chasse de la préfecture.",
       leadBanner: "Du 15 avril au 30 juin, en bois et forêts, les chiens doivent être tenus en laisse en dehors des allées forestières (arrêté du 16 mars 1955).",
       harvestBanner: "Vendanges : plus de monde, de machines et de tracteurs dans les vignes.",
       forest: function (name, dom) { return (dom ? "Forêt domaniale (ONF)" : "Forêt publique (ONF)") + " : " + esc(name); },
@@ -112,6 +120,7 @@
         return n + ": " + lv;
       },
       seasonAdvice: "In and near woods, look out for yellow \"Chasse en cours\" or \"Battue en cours\" signs and change your route.",
+      rulesHint: "Click a département to read the préfecture's hunting rules (in French).",
       leadBanner: "From 15 April to 30 June, dogs in woods and forests must be on a lead away from forest tracks (French law, 1955).",
       harvestBanner: "Grape harvest: more people, machines and tractors in the vineyards.",
       forest: function (name, dom) { return (dom ? "State forest (ONF)" : "Public forest (ONF)") + ": " + esc(name); },
@@ -231,6 +240,11 @@
   }
 
   // ---------------------------------------------------------------- banners
+  function deptLink(d) {   // new tab, so the visitor keeps their map and sliders
+    return '<a href="' + esc(HUNT_URLS[d]) + '" target="_blank" rel="noopener noreferrer">' +
+      esc(DEPT_NAMES[d] + " (" + d + ")") + "</a>";
+  }
+
   function banners() {
     var box = document.getElementById("qwf-banners");
     if (!box) return;
@@ -239,8 +253,10 @@
     var hunting = lines.some(function (x) { return x[1].stale || x[1].level !== "closed"; });
     if (hunting) {
       html.push('<div class="qwf-banner qwf-banner-hunt"><b>' + TXT.seasonOpen + "</b><ul>" +
-        lines.map(function (x) { return "<li>" + esc(TXT.seasonLines(DEPT_NAMES[x[0]] + " (" + x[0] + ")", x[1])) + "</li>"; }).join("") +
-        "</ul><p>" + esc(TXT.seasonAdvice) + "</p></div>");
+        lines.map(function (x) {   // seasonLines("") gives just the separator and the level
+          return "<li>" + deptLink(x[0]) + esc(TXT.seasonLines("", x[1])) + "</li>";
+        }).join("") +
+        "</ul><p>" + esc(TXT.seasonAdvice) + "</p><p>" + esc(TXT.rulesHint) + "</p></div>");
     }
     if (lines[0][1].lead_rule) html.push('<div class="qwf-banner qwf-banner-lead">' + esc(TXT.leadBanner) + "</div>");
     if (harvest) html.push('<div class="qwf-banner qwf-banner-harvest">' + esc(TXT.harvestBanner) + "</div>");
