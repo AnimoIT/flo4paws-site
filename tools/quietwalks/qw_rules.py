@@ -17,6 +17,7 @@ Standard library only.
 """
 import datetime as dt
 import json
+import math
 import os
 import sys
 
@@ -192,6 +193,21 @@ def state_on(rules, dept, day, forest_id=None):
         out["onf_listed_day"] = day.isoformat() in f["seasons"][skey].get("days", [])
     out.update(common)
     return out
+
+
+def chasse_value(rules, st, wood, forest_id=None):
+    """0-100 Chasse value of one path on the day described by st (from state_on).
+
+    wood is the path's woodland share (0-100). In an ONF forest with a calendar for the
+    season, the woodland part uses onf_listed_day / onf_other_day instead of the level.
+    """
+    w = rules["weights"]
+    level = st["level"]
+    wood_w = w["woodland"][level]
+    if "onf_listed_day" in st and level not in ("closed", "suspended") and not st.get("stale"):
+        wood_w = w["onf_listed_day"] if st["onf_listed_day"] else w["onf_other_day"]
+    f = wood / 100.0
+    return int(math.floor(100 * (f * wood_w + (1 - f) * w["open_land"][level]) + 0.5))   # half up, like Math.round
 
 
 def main(argv):

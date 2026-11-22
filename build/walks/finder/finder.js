@@ -1,31 +1,77 @@
-/* Flo 4 Paws Quiet Walk Finder.
-   Data: /walks/finder-data/v1/ (index.json, chunks/<k>.json, starts.json) and
-   /walks/finder-data/postcodes/<OUTWARD>.json, built by the quietwalks pipeline.
+/* Flo 4 Paws Quiet Walk Finder: shared core (UK and France).
+   Data: <data>/index.json, chunks/<k>.json, starts.json, built by the quietwalks pipeline;
+   UK places: /walks/finder-data/postcodes/<OUTWARD>.json.
    Everything a visitor types stays in the browser: only the postcode district
-   file (e.g. NG13.json) is requested.
+   file (e.g. NG13.json) or the region's place file is requested.
    Analytics (14 Nov 2026): four GA events say only that something happened --
    qwf_search {method}, qwf_not_covered {method}, qwf_results {count}, qwf_directions.
    No postcode, location, area or slider answer is ever sent. gtag and the visitor's
-   consent choice are set up by the page head (Consent Mode), not here. */
+   consent choice are set up by the page head (Consent Mode), not here; pages without
+   gtag (soutenirmonchien.fr) send nothing.
+   Regions (S373): a page may set window.QWF before this script to change data paths,
+   units, text, sliders, place search and popups. With no window.QWF this is the UK
+   finder, unchanged. See qwf-fr.js for the French region. */
 (function () {
   "use strict";
-  var DATA = "/walks/finder-data/v1/";
+  var CFG = window.QWF || {};
+  var DATA = CFG.data || "/walks/finder-data/v1/";
   var PC = "/walks/finder-data/postcodes/";
-  var BASEMAP = "/walks/finder-data/basemap.pmtiles";
+  var BASEMAP = CFG.basemap || "/walks/finder-data/basemap.pmtiles";
+  var ASSETS = CFG.assets || "/walks/finder/";
   var GREEN = 75, AMBER = 55;
   var NEAR_KM = 20;          // look for start points within this distance
   var MIN_QUIET_KM = 3;      // a start point needs this much quieter path around it
   var SHOW = 8;              // start points listed
+  var COLS = { pd: 1, lv: 2, bk: 3, bg: 4, tr: 5 };   // built-in trigger -> row column
+  var OWN = CFG.own || {};   // built-in triggers a region computes itself (CFG.value)
+
+  // UK English text. A region's CFG.text replaces any of these.
+  var T = {
+    levels: ["Not bothered", "A little", "Worried", "Very worried"],
+    triggers: { pd: "Other dogs and people", lv: "Livestock (sheep, cattle, horses)", bk: "Bikes",
+                bg: "Bangs (shooting, bird scarers)", tr: "Traffic noise" },
+    short: { pd: "Dogs/people", lv: "Livestock", bk: "Bikes", bg: "Bangs", tr: "Traffic" },
+    flags: { big: "Large or busy car park", reserve: "Nature reserve nearby: check dog rules" },
+    pathWords: /^(footway|path|track|bridleway|cycleway|steps|public footpath|public bridleway)$/i,
+    path: "Path",
+    you: "You",
+    notPostcode: "That doesn't look like a UK postcode. Try something like NG13 8AB.",
+    lookingUp: function (s) { return "Looking up " + s + "…"; },
+    noPostcode: "I couldn't find that postcode. Check it, or use your location instead.",
+    lookupFailed: "Sorry, the postcode lookup didn't load. Please try again.",
+    notCovered: function (idx) {
+      return "Sorry, the finder doesn't cover that area yet. It currently covers about " +
+        Math.round(idx.radius_m / 1609) + " miles around Bingham, Nottinghamshire.";
+    },
+    noGeo: "Your browser can't share a location. Please enter a postcode.",
+    finding: "Finding your location…",
+    yourLocation: "your location",
+    geoRefused: "Location wasn't shared. Please enter your postcode instead.",
+    loadingNear: function (l) { return "Loading paths near " + l + "…"; },
+    dataFailed: "Sorry, the walk data didn't load. Please try again in a moment.",
+    showing: function (l) { return "Showing quieter paths and start points near " + l + "."; },
+    noneNear: function (km, l) {
+      return "No start points with enough quieter path within " + km + " km of " + l + ". Try easing a slider.";
+    },
+    listLine: function (dKm, quietKm, mean) {
+      return (dKm * 0.6214).toFixed(1) + " miles away · " + (quietKm * 0.6214).toFixed(1) +
+        " miles of quieter path within a mile · average score " + Math.round(mean);
+    },
+    showOnMap: "Show on map",
+    directions: "Directions",
+    quietNearby: function (quietKm) { return (quietKm * 0.6214).toFixed(1) + " miles of quieter path nearby"; },
+    popupLine: function (s, lenM) { return "Score " + s + " · " + (lenM / 1609).toFixed(2) + " miles"; },
+    noMap: "The map couldn't load in this browser.",
+    unavailable: "Sorry, the walk finder isn't available right now. Please try again later.",
+    updated: function (built) { return " Data updated " + built + "."; }
+  };
+  Object.keys(CFG.text || {}).forEach(function (k) { T[k] = CFG.text[k]; });
 
   // Trigger sliders: 0 not bothered .. 3 very worried
-  var TRIGGERS = [
-    { key: "pd", label: "Other dogs and people", def: 3 },
-    { key: "lv", label: "Livestock (sheep, cattle, horses)", def: 2 },
-    { key: "bk", label: "Bikes", def: 2 },
-    { key: "bg", label: "Bangs (shooting, bird scarers)", def: 2 },
-    { key: "tr", label: "Traffic noise", def: 1 }
-  ];
-  var LEVELS = ["Not bothered", "A little", "Worried", "Very worried"];
+  var TRIGGERS = (CFG.triggers || [
+    { key: "pd", def: 3 }, { key: "lv", def: 2 }, { key: "bk", def: 2 }, { key: "bg", def: 2 }, { key: "tr", def: 1 }
+  ]).map(function (t) { return { key: t.key, label: t.label || T.triggers[t.key], def: t.def }; });
+  var LEVELS = T.levels;
   var SEV = [0, 0.35, 0.7, 1.0];
 
   var $ = function (id) { return document.getElementById(id); };
@@ -38,6 +84,7 @@
 
   function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
   function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  var KEY = CFG.storagePrefix || "qwf-";
 
   function status(msg, isErr) {
     var s = $("qwf-status");
@@ -54,14 +101,17 @@
   }
 
   // ---------------------------------------------------------------- scoring
+  function value(row, key) {   // 0-1
+    return COLS[key] && !OWN[key] ? row[COLS[key]] / 100 : CFG.value(key, row) / 100;
+  }
+
   function score(row) {
-    // row: [id, pd, lv, bk, bg, tr, len, name, geom]; values 0-100
-    var f = { pd: row[1] / 100, lv: row[2] / 100, bk: row[3] / 100, bg: row[4] / 100, tr: row[5] / 100 };
+    // row: [id, pd, lv, bk, bg, tr, len, name, geom, ...region fields]; values 0-100
     var wsum = 0, mean = 0, worst = 0;
     TRIGGERS.forEach(function (t) {
-      var s = SEV[state.levels[t.key]];
-      wsum += s; mean += s * f[t.key];
-      worst = Math.max(worst, s * f[t.key]);
+      var s = SEV[state.levels[t.key]], f = value(row, t.key);
+      wsum += s; mean += s * f;
+      worst = Math.max(worst, s * f);
     });
     if (wsum === 0) return 100;
     return Math.round(100 * (1 - (0.5 * worst + 0.5 * mean / wsum)));
@@ -71,7 +121,7 @@
   function buildSliders() {
     var box = $("qwf-sliders");
     TRIGGERS.forEach(function (t) {
-      var saved = parseInt(load("qwf-" + t.key), 10);
+      var saved = parseInt(load(KEY + t.key), 10);
       state.levels[t.key] = isNaN(saved) ? t.def : Math.max(0, Math.min(3, saved));
       var id = "qwf-s-" + t.key;
       var wrap = document.createElement("div");
@@ -88,7 +138,7 @@
       show();
       input.addEventListener("input", function () {
         state.levels[t.key] = parseInt(input.value, 10);
-        store("qwf-" + t.key, input.value);
+        store(KEY + t.key, input.value);
         show();
         refresh();
       });
@@ -132,31 +182,28 @@
 
   function findPostcode(raw) {
     var pc = normalisePostcode(raw);
-    if (!pc) { status("That doesn't look like a UK postcode. Try something like NG13 8AB.", true); return; }
+    if (!pc) { status(T.notPostcode, true); return; }
     var outward = pc.slice(0, -3);
-    status("Looking up " + outward + " " + pc.slice(-3) + "…");
+    status(T.lookingUp(outward + " " + pc.slice(-3)));
     getJSON(PC + outward + ".json").then(function (book) {
       var p = book[pc];
-      if (!p) { status("I couldn't find that postcode. Check it, or use your location instead.", true); return; }
+      if (!p) { status(T.noPostcode, true); return; }
       setPoint([p[0], p[1]], outward + " " + pc.slice(-3), "postcode");
     }).catch(function (e) {
       if (e.status === 404) { track("qwf_not_covered", { method: "postcode" }); status(notCovered(), true); }
-      else status("Sorry, the postcode lookup didn't load. Please try again.", true);
+      else status(T.lookupFailed, true);
     });
   }
 
-  function notCovered() {
-    return "Sorry, the finder doesn't cover that area yet. It currently covers about " +
-      Math.round(state.index.radius_m / 1609) + " miles around Bingham, Nottinghamshire.";
-  }
+  function notCovered() { return T.notCovered(state.index); }
 
   function useLocation() {
-    if (!navigator.geolocation) { status("Your browser can't share a location. Please enter a postcode.", true); return; }
-    status("Finding your location…");
+    if (!navigator.geolocation) { status(T.noGeo, true); return; }
+    status(T.finding);
     navigator.geolocation.getCurrentPosition(function (pos) {
-      setPoint([pos.coords.latitude, pos.coords.longitude], "your location", "location");
+      setPoint([pos.coords.latitude, pos.coords.longitude], T.yourLocation, "location");
     }, function () {
-      status("Location wasn't shared. Please enter your postcode instead.", true);
+      status(T.geoRefused, true);
     }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
   }
 
@@ -165,7 +212,7 @@
     if (km(pt, c) > state.index.radius_m / 1000 + 5) { track("qwf_not_covered", { method: method }); status(notCovered(), true); return; }
     track("qwf_search", { method: method });
     state.point = pt; state.label = label;
-    status("Loading paths near " + label + "…");
+    status(T.loadingNear(label));
     var keys = chunksNear(pt, NEAR_KM + state.index.start_radius_m / 1000 + 1);
     Promise.all([loadChunks(keys), state.starts ? null : getJSON(DATA + "starts.json").then(function (s) {
       state.starts = s.map(function (st) {   // decode path-number gaps once
@@ -175,13 +222,11 @@
     })]).then(function () {
       refresh(true);
     }).catch(function () {
-      status("Sorry, the walk data didn't load. Please try again in a moment.", true);
+      status(T.dataFailed, true);
     });
   }
 
   // ---------------------------------------------------------------- render
-  var FLAG_TEXT = { big: "Large or busy car park", reserve: "Nature reserve nearby: check dog rules" };
-
   function refresh(fit) {
     if (!state.point || !state.map || !state.map.isStyleLoaded()) return;
     var quietOnly = $("qwf-quietonly").checked;
@@ -226,9 +271,7 @@
     renderList(keep);
     renderMarkers(keep, fit);
     if (fit) track("qwf_results", { count: keep.length });   // a new search, not a slider change
-    status(keep.length ? "Showing quieter paths and start points near " + state.label + "." :
-      "No start points with enough quieter path within " + NEAR_KM + " km of " + state.label +
-      ". Try easing a slider.", !keep.length);
+    status(keep.length ? T.showing(state.label) : T.noneNear(NEAR_KM, state.label), !keep.length);
   }
 
   function esc(s) {
@@ -237,18 +280,19 @@
     });
   }
 
+  function startName(st) { return CFG.startName ? CFG.startName(st) : st.name; }
+
   function renderList(keep) {
     var ol = $("qwf-list");
     ol.innerHTML = "";
     keep.forEach(function (r, i) {
       var li = document.createElement("li");
-      var flags = r.st.flags.map(function (f) { return FLAG_TEXT[f] ? '<span class="qwf-flag">' + FLAG_TEXT[f] + "</span>" : ""; }).join("");
+      var flags = r.st.flags.map(function (f) { return T.flags[f] ? '<span class="qwf-flag">' + T.flags[f] + "</span>" : ""; }).join("");
       var dir = "https://www.google.com/maps/dir/?api=1&destination=" + r.st.lat + "," + r.st.lon;
-      li.innerHTML = '<div class="qwf-li-h"><span class="qwf-num">' + (i + 1) + '</span><b>' + esc(r.st.name) + "</b></div>" +
-        '<p>' + (r.d * 0.6214).toFixed(1) + " miles away · " + (r.quietKm * 0.6214).toFixed(1) +
-        " miles of quieter path within a mile · average score " + Math.round(r.mean) + "</p>" + flags +
-        '<p class="qwf-acts"><button type="button" class="qwf-link" data-i="' + i + '">Show on map</button>' +
-        ' <a class="qwf-link" href="' + dir + '" target="_blank" rel="noopener">Directions</a></p>';
+      li.innerHTML = '<div class="qwf-li-h"><span class="qwf-num">' + (i + 1) + '</span><b>' + esc(startName(r.st)) + "</b></div>" +
+        '<p>' + T.listLine(r.d, r.quietKm, r.mean) + "</p>" + flags +
+        '<p class="qwf-acts"><button type="button" class="qwf-link" data-i="' + i + '">' + T.showOnMap + '</button>' +
+        ' <a class="qwf-link" href="' + dir + '" target="_blank" rel="noopener">' + T.directions + '</a></p>';
       ol.appendChild(li);
     });
     ol.querySelectorAll("button[data-i]").forEach(function (b) {
@@ -266,7 +310,7 @@
     state.markers = [];
     var bounds = new maplibregl.LngLatBounds([state.point[1], state.point[0]], [state.point[1], state.point[0]]);
     if (!state.home) {
-      var h = document.createElement("div"); h.className = "qwf-home"; h.title = "You";
+      var h = document.createElement("div"); h.className = "qwf-home"; h.title = T.you;
       state.home = new maplibregl.Marker({ element: h }).setLngLat([state.point[1], state.point[0]]).addTo(state.map);
     } else {
       state.home.setLngLat([state.point[1], state.point[0]]);
@@ -275,9 +319,9 @@
       var el = document.createElement("div");
       el.className = "qwf-marker"; el.textContent = i + 1;
       var pop = new maplibregl.Popup({ offset: 14 }).setHTML(
-        "<b>" + esc(r.st.name) + "</b><br>" + (r.quietKm * 0.6214).toFixed(1) + " miles of quieter path nearby<br>" +
+        "<b>" + esc(startName(r.st)) + "</b><br>" + T.quietNearby(r.quietKm) + "<br>" +
         '<a href="https://www.google.com/maps/dir/?api=1&destination=' + r.st.lat + "," + r.st.lon +
-        '" target="_blank" rel="noopener">Directions</a>');
+        '" target="_blank" rel="noopener">' + T.directions + '</a>');
       state.markers.push(new maplibregl.Marker({ element: el }).setLngLat([r.st.lon, r.st.lat]).setPopup(pop).addTo(state.map));
       bounds.extend([r.st.lon, r.st.lat]);
     });
@@ -285,29 +329,27 @@
   }
 
   // ---------------------------------------------------------------- map
-  var TRIGGER_NAMES = { pd: "Dogs/people", lv: "Livestock", bk: "Bikes", bg: "Bangs", tr: "Traffic" };
-
   function pathPopup(e) {
     var f = e.features[0], r = state.rows[f.properties.n];
     if (!r) return;
-    var nm = /^(footway|path|track|bridleway|cycleway|steps|public footpath|public bridleway)$/i.test(r[7]) || !r[7]
-      ? "Path" : r[7];
-    var bars = ["pd", "lv", "bk", "bg", "tr"].map(function (k, i) {
-      return '<div class="qwf-bar"><span>' + TRIGGER_NAMES[k] + '</span><i style="width:' + r[i + 1] + '%"></i></div>';
+    var nm = T.pathWords.test(r[7]) || !r[7] ? T.path : r[7];
+    var bars = TRIGGERS.map(function (t) {
+      return '<div class="qwf-bar"><span>' + (T.short[t.key] || t.label) + '</span><i style="width:' +
+        (COLS[t.key] && !OWN[t.key] ? r[COLS[t.key]] : Math.round(CFG.value(t.key, r))) + '%"></i></div>';
     }).join("");
     new maplibregl.Popup().setLngLat(e.lngLat).setHTML(
-      "<b>" + esc(nm) + "</b><br>Score " + f.properties.s + " · " + (r[6] / 1609).toFixed(2) + " miles" + bars
+      "<b>" + esc(nm) + "</b><br>" + T.popupLine(f.properties.s, r[6]) + bars + (CFG.popupExtra ? CFG.popupExtra(r) : "")
     ).addTo(state.map);
   }
 
   function initMap() {
     var protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
-    var origin = location.origin;
-    return getJSON("/walks/finder/basemap-style.json").then(function (style) {
-      style.glyphs = origin + "/walks/finder/fonts/{fontstack}/{range}.pbf";
-      style.sprite = origin + "/walks/finder/sprites/light";
-      style.sources.protomaps.url = "pmtiles://" + origin + BASEMAP;
+    var abs = function (u) { return new URL(u, location.href).href; };   // "/x/" or a relative path
+    return getJSON(ASSETS + "basemap-style.json").then(function (style) {
+      style.glyphs = abs(ASSETS) + "fonts/{fontstack}/{range}.pbf";
+      style.sprite = abs(ASSETS) + "sprites/light";
+      style.sources.protomaps.url = "pmtiles://" + abs(BASEMAP);
       var c = state.index.centre;
       var map = new maplibregl.Map({ container: "qwf-map", style: style, center: [c[1], c[0]], zoom: 9.5,
                                      attributionControl: { compact: true }, cooperativeGestures: true });
@@ -334,10 +376,13 @@
   }
 
   // ---------------------------------------------------------------- start
-  function start() {
-    if (!window.maplibregl || !window.pmtiles) { status("The map couldn't load in this browser.", true); return; }
+  var api = { setPoint: function (pt, label, method) { setPoint(pt, label, method); }, status: status,
+              track: track, getJSON: getJSON, refresh: function () { refresh(false); } };
+
+  function begin() {
     buildSliders();
-    $("qwf-form").addEventListener("submit", function (e) { e.preventDefault(); findPostcode($("qwf-postcode").value); });
+    var find = CFG.findPlace ? function (raw) { CFG.findPlace(raw, api); } : findPostcode;
+    $("qwf-form").addEventListener("submit", function (e) { e.preventDefault(); find($(CFG.searchInput || "qwf-postcode").value); });
     $("qwf-locate").addEventListener("click", useLocation);
     $("qwf-quietonly").addEventListener("change", function () { refresh(false); });
     // Directions links live in the list and in map popups; one listener catches both
@@ -347,11 +392,17 @@
     });
     getJSON(DATA + "index.json").then(function (idx) {
       state.index = idx;
-      $("qwf-attrib").insertAdjacentText("beforeend", " Data updated " + idx.built + ".");
+      $("qwf-attrib").insertAdjacentText("beforeend", T.updated(idx.built));
       return initMap();
     }).catch(function () {
-      status("Sorry, the walk finder isn't available right now. Please try again later.", true);
+      status(T.unavailable, true);
     });
+  }
+
+  function start() {
+    if (!window.maplibregl || !window.pmtiles) { status(T.noMap, true); return; }
+    if (CFG.ready) CFG.ready.then(begin, function () { status(T.unavailable, true); });
+    else begin();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
