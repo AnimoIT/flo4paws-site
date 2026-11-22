@@ -63,15 +63,17 @@
      "read": "OCR (tesseract fra) of the scanned PDF, S372"
     },
     "periods": [
+     {"level": "stalk", "from": "2026-06-01", "to": "2026-09-12", "assumed": true, "what": "ASSUMED (S372, ruling H3): summer deer stalking and boar on prefectoral authorisation, set by a separate order not seen. Pattern from the 2024 Rhône consultation: boar 1 June-14 Aug in battue/affût/approche on authorisation."},
      {"level": "open", "from": "2026-09-13", "to": "2027-02-28", "start_time": "08:00", "what": "ouverture générale, chasse à tir (art. 2.1); chevreuil, cerf, daim same dates (art. 5.1)"},
-     {"level": "battue", "from": "2026-09-13", "to": "2027-03-31", "what": "sanglier (art. 5.1)"}
+     {"level": "battue", "from": "2026-09-13", "to": "2027-03-31", "what": "sanglier (art. 5.1)"},
+     {"level": "stalk", "from": "2027-04-01", "to": "2027-05-31", "assumed": true, "what": "ASSUMED (S372, ruling H3): boar crop-protection shooting on authorisation, separate order not seen."}
     ],
     "day_rules": [
      {"weekdays": [2, 5], "except_public_holidays": true, "scope": "small_game",
       "what": "Chasse à tir suspendue le mardi et le vendredi, sauf jours fériés (art. 3). Does NOT apply to chevreuil, cerf, daim, sanglier, so drives can still happen: no change to the walker's risk."}
     ],
     "notes": [
-     "Outside 13 Sept-28 Feb (deer) and 13 Sept-31 Mar (boar), separate prefectoral orders set summer stalking and extra boar hunting (art. 5.1). Not entered: S372 has no copy. Treat as 'stalk' risk if found.",
+     "Outside 13 Sept-28 Feb (deer) and 13 Sept-31 Mar (boar), separate prefectoral orders set summer stalking and extra boar hunting (art. 5.1). S372 could not find the 2026 order, so those months are entered as 'stalk', marked assumed (ruling H3). Replace with the real order when found (likely DDT-2026-A4x, rhone.gouv.fr).",
      "Hours: one hour before sunrise to one hour after sunset (Lyon) (art. 4)."
     ]
    }

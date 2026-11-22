@@ -37,7 +37,10 @@ class Check(unittest.TestCase):
         self.mutate(lambda r: r["hunting"]["71"]["2026-27"]["periods"][0].update({"from": "2026-02-30"}), "bad date")
 
     def test_from_after_to(self):
-        self.mutate(lambda r: r["hunting"]["69"]["2026-27"]["periods"][0].update({"to": "2026-09-01"}), "is after")
+        def f(r):
+            p = r["hunting"]["69"]["2026-27"]["periods"][0]
+            p["to"] = (dt.date.fromisoformat(p["from"]) - dt.timedelta(days=1)).isoformat()
+        self.mutate(f, "is after")
 
     def test_unknown_level(self):
         self.mutate(lambda r: r["hunting"]["01"]["2026-27"]["periods"][0].update({"level": "busy"}), "not allowed")
@@ -104,6 +107,12 @@ class State(unittest.TestCase):
 
     def test_69_tuesday_still_battue(self):
         self.assertEqual(self.lv("69", "2026-11-24"), "battue")
+
+    def test_69_assumed_summer_and_spring(self):
+        self.assertEqual(self.lv("69", "2026-07-10"), "stalk")
+        self.assertEqual(self.lv("69", "2027-04-20"), "stalk")
+        assumed = [p for p in RULES["hunting"]["69"]["2026-27"]["periods"] if p.get("assumed")]
+        self.assertEqual(len(assumed), 2)
 
     def test_stale(self):
         s = q.state_on(RULES, "71", dt.date(2027, 7, 1))
