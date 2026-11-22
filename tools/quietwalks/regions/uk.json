@@ -26,6 +26,6 @@
   "push_key": "~/.ssh/qw_push_uk",
   "swap_key": "~/.ssh/qw_swap_uk"
  },
- "public_index": "https://flo4paws.co.uk/walks/finder-data/v1/index.json",
+ "public_index": "https://www.flo4paws.co.uk/walks/finder-data/v1/index.json",
  "max_age_days": 40
 }
