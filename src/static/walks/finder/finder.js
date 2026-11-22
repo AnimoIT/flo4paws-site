@@ -23,6 +23,7 @@
   var MIN_QUIET_KM = 3;      // a start point needs this much quieter path around it
   var SHOW = 8;              // start points listed
   var COLS = { pd: 1, lv: 2, bk: 3, bg: 4, tr: 5 };   // built-in trigger -> row column
+  var OWN = CFG.own || {};   // built-in triggers a region computes itself (CFG.value)
 
   // UK English text. A region's CFG.text replaces any of these.
   var T = {
@@ -101,7 +102,7 @@
 
   // ---------------------------------------------------------------- scoring
   function value(row, key) {   // 0-1
-    return COLS[key] ? row[COLS[key]] / 100 : CFG.value(key, row) / 100;
+    return COLS[key] && !OWN[key] ? row[COLS[key]] / 100 : CFG.value(key, row) / 100;
   }
 
   function score(row) {
@@ -334,7 +335,7 @@
     var nm = T.pathWords.test(r[7]) || !r[7] ? T.path : r[7];
     var bars = TRIGGERS.map(function (t) {
       return '<div class="qwf-bar"><span>' + (T.short[t.key] || t.label) + '</span><i style="width:' +
-        (COLS[t.key] ? r[COLS[t.key]] : Math.round(CFG.value(t.key, r))) + '%"></i></div>';
+        (COLS[t.key] && !OWN[t.key] ? r[COLS[t.key]] : Math.round(CFG.value(t.key, r))) + '%"></i></div>';
     }).join("");
     new maplibregl.Popup().setLngLat(e.lngLat).setHTML(
       "<b>" + esc(nm) + "</b><br>" + T.popupLine(f.properties.s, r[6]) + bars + (CFG.popupExtra ? CFG.popupExtra(r) : "")
@@ -344,11 +345,11 @@
   function initMap() {
     var protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
-    var origin = location.origin;
+    var abs = function (u) { return new URL(u, location.href).href; };   // "/x/" or a relative path
     return getJSON(ASSETS + "basemap-style.json").then(function (style) {
-      style.glyphs = origin + ASSETS + "fonts/{fontstack}/{range}.pbf";
-      style.sprite = origin + ASSETS + "sprites/light";
-      style.sources.protomaps.url = "pmtiles://" + origin + BASEMAP;
+      style.glyphs = abs(ASSETS) + "fonts/{fontstack}/{range}.pbf";
+      style.sprite = abs(ASSETS) + "sprites/light";
+      style.sources.protomaps.url = "pmtiles://" + abs(BASEMAP);
       var c = state.index.centre;
       var map = new maplibregl.Map({ container: "qwf-map", style: style, center: [c[1], c[0]], zoom: 9.5,
                                      attributionControl: { compact: true }, cooperativeGestures: true });

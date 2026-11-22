@@ -13,9 +13,9 @@
   "closed": "no period in force"
  },
  "weights": {
-  "note": "Starting values from the spec (§4.1), to tune in B5. chasse value = wood x woodland[level] + (1 - wood) x open_land[level], 0-1.",
-  "woodland": {"battue": 1.0, "open": 1.0, "stalk": 0.2, "suspended": 0.2, "closed": 0.0},
-  "open_land": {"battue": 0.3, "open": 0.3, "stalk": 0.0, "suspended": 0.0, "closed": 0.0},
+  "note": "Ruled in S373 (B5, 'battue possible'): on an ordinary hunting day a drive in a given wood is possible, not certain, so woodland 0.5 and open land 0.1; a listed ONF hunt day is certain (1.0). With the default Chasse slider (3) a November day shows about 9% quiet / 54% mixed / 37% busy path km (it was 4/22/74 with the spec's starting values 1.0/0.3). chasse value = wood x woodland[level] + (1 - wood) x open_land[level], 0-1.",
+  "woodland": {"battue": 0.5, "open": 0.5, "stalk": 0.2, "suspended": 0.2, "closed": 0.0},
+  "open_land": {"battue": 0.1, "open": 0.1, "stalk": 0.0, "suspended": 0.0, "closed": 0.0},
   "onf_listed_day": 1.0,
   "onf_other_day": 0.3,
   "stale_rules": "treat every day as battue and show 'règles de chasse non mises à jour pour cette saison'"
