@@ -78,6 +78,14 @@ class Check(unittest.TestCase):
             r["onf"]["forests"]["FTEST"] = {"dept": "71", "seasons": {}}
         self.mutate(f, "not in forests.json", forests={})
 
+    def test_onf_day_unlisted_and_listed(self):
+        f = lambda d: q.state_on(RULES, "71", dt.date.fromisoformat(d), "F22134H").get("onf_listed_day")  # noqa: E731
+        self.assertEqual((f("2026-11-23"), f("2026-11-24")), (True, False))   # Cluny: Mondays
+        self.assertIsNone(q.state_on(RULES, "71", dt.date(2026, 11, 23), "F22559Q").get("onf_listed_day"))  # Pezanin: no calendar
+
+    def test_real_onf_days_inside_season(self):
+        self.assertEqual(len(RULES["onf"]["forests"]), 3)
+
     def test_bad_lead_rule(self):
         self.mutate(lambda r: r["lead_rule"].update({"from": "04-31"}), "bad month-day")
 

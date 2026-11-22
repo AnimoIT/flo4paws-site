@@ -118,11 +118,13 @@ def check(rules, today, forests=None):
             errors.append(f"onf.{fid}: not in forests.json")
         dept = f.get("dept")
         for skey, s in (f.get("seasons") or {}).items():
-            season = rules["hunting"].get(dept, {}).get(skey)
-            if not season:
+            if not rules["hunting"].get(dept, {}).get(skey):
                 errors.append(f"onf.{fid}.{skey}: no hunting.{dept}.{skey} to sit inside")
                 continue
-            a, b = season_span(season)
+            span = [sp for sp, k in spans.get(dept, []) if k == skey]
+            if not span:
+                continue        # that season's own dates are bad: already reported above
+            a, b = span[0]
             for x in s.get("days") or []:
                 d = _date(x, f"onf.{fid}.{skey}.days", errors)
                 if d and not a <= d <= b:

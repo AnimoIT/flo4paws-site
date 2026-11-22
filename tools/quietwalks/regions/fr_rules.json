@@ -108,8 +108,161 @@
  },
 
  "onf": {
-  "note": "ONF state-forest (forêt domaniale) hunt days, keyed by ONF id (iidtn_frt). Typed in each September from onf.fr/chasse/les-calendriers-de-chasse-en-foret-domaniale.",
-  "forests": {}
+  "note": "ONF state-forest (forêt domaniale) hunt days, keyed by ONF id (iidtn_frt). Collective big-game shooting days from the general opening (hors battues administratives). Re-read each September from each forest's onf.fr page. Dates are indicative and can change.",
+  "no_calendar_2026-27": ["F22189K Trois-Monts", "F22210F Grison", "F22492B la Grosne", "F22559Q Pezanin"],
+  "no_calendar_note": "These four ONF pages show the 2026-2027 season with no dates (checked 22 Nov 2026). They get no onf entry, so they score as ordinary woodland on every hunting day (cautious). Look again in September.",
+  "forests": {
+   "F22134H": {
+    "name": "Forêt domaniale de Cluny",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26",
+       "2026-11-02",
+       "2026-11-09",
+       "2026-11-16",
+       "2026-11-23",
+       "2026-11-30",
+       "2026-12-07",
+       "2026-12-14",
+       "2026-12-21",
+       "2026-12-28",
+       "2027-01-04",
+       "2027-01-11",
+       "2027-01-18",
+       "2027-01-25",
+       "2027-02-01",
+       "2027-02-08",
+       "2027-02-15",
+       "2027-02-22",
+       "2027-03-01",
+       "2027-03-08",
+       "2027-03-15",
+       "2027-03-22",
+       "2027-03-29"
+      ],
+      "pattern": "Mondays",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22134h::jours-chasses-en-foret-domaniale-de-cluny.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   },
+   "F22303U": {
+    "name": "Forêt domaniale de la Ferté",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-09-24",
+       "2026-09-26",
+       "2026-10-01",
+       "2026-10-03",
+       "2026-10-08",
+       "2026-10-10",
+       "2026-10-15",
+       "2026-10-17",
+       "2026-10-22",
+       "2026-10-24",
+       "2026-10-29",
+       "2026-10-31",
+       "2026-11-05",
+       "2026-11-07",
+       "2026-11-12",
+       "2026-11-14",
+       "2026-11-19",
+       "2026-11-21",
+       "2026-11-26",
+       "2026-11-28",
+       "2026-12-03",
+       "2026-12-05",
+       "2026-12-10",
+       "2026-12-12",
+       "2026-12-17",
+       "2026-12-19",
+       "2026-12-24",
+       "2026-12-26",
+       "2026-12-31",
+       "2027-01-02",
+       "2027-01-07",
+       "2027-01-09",
+       "2027-01-14",
+       "2027-01-16",
+       "2027-01-21",
+       "2027-01-23",
+       "2027-01-28",
+       "2027-01-30",
+       "2027-02-04",
+       "2027-02-06",
+       "2027-02-11",
+       "2027-02-13",
+       "2027-02-18",
+       "2027-02-20",
+       "2027-02-25",
+       "2027-02-27"
+      ],
+      "pattern": "Thursdays and Saturdays, 3 lots",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22303u::jours-chasses-en-foret-domaniale-de-la-ferte.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   },
+   "F22488X": {
+    "name": "Forêt domaniale de Chapaize",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-08-12",
+       "2026-08-19",
+       "2026-08-26",
+       "2026-09-02",
+       "2026-09-09",
+       "2026-09-16",
+       "2026-09-23",
+       "2026-09-30",
+       "2026-10-07",
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28",
+       "2026-11-04",
+       "2026-11-11",
+       "2026-11-18",
+       "2026-11-25",
+       "2026-12-02",
+       "2026-12-09",
+       "2026-12-16",
+       "2026-12-23",
+       "2026-12-30",
+       "2027-01-06",
+       "2027-01-13",
+       "2027-01-20",
+       "2027-01-27",
+       "2027-02-03",
+       "2027-02-10",
+       "2027-02-17",
+       "2027-02-24",
+       "2027-03-03",
+       "2027-03-10",
+       "2027-03-17",
+       "2027-03-24",
+       "2027-03-31"
+      ],
+      "pattern": "Wednesdays",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22488x::jours-chasses-en-foret-domaniale-de-chapaize.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   }
+  }
  },
 
  "lead_rule": {
