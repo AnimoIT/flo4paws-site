@@ -197,6 +197,13 @@ out tags geom;""",
 }
 
 
+EXTRA = REGION.get("extra_starts") or {}     # Q2 (S368): non-parking starts, France only for now
+if EXTRA.get("trailheads"):
+    QUERIES["trailheads"] = """
+nwr["highway"="trailhead"]({b});
+out tags center;"""
+
+
 def overpass(query):
     body = "[out:json][timeout:300][maxsize:536870912];" + query
     data = urllib.parse.urlencode({"data": body}).encode()
@@ -1099,7 +1106,7 @@ EXPORT_MIN_KM = 3.0          # a start point needs this much path within START_R
 EXPORT_DEDUPE_M = 300
 
 
-def export_finder(out_dir, scored, parking, places, reserves):
+def export_finder(out_dir, scored, parking, places, reserves, trailheads=()):
     """Write the public finder data: trigger values per path (no scores, no personal
     ratings) and every usable start point with the ids of the paths around it.
     The page combines the values with each visitor's own trigger sliders."""
@@ -1136,11 +1143,20 @@ def export_finder(out_dir, scored, parking, places, reserves):
             bucket.setdefault((int(x // 500), int(y // 500)), set()).add(i)
     R = START_RADIUS_M
     starts, kept = [], []
-    for pk in sorted(parking, key=lambda q: q["big"]):
+    cands = sorted(parking, key=lambda q: q["big"])
+    # Q2: trailheads, then village centres, as starts with no mapped car park. They come
+    # after every car park and must be DEDUPE_M from any start already kept.
+    for x, y, nm in trailheads:
+        cands.append({"x": x, "y": y, "name": nm, "big": False, "extra": "trailhead"})
+    for x, y, nm, kind in places:
+        if kind in EXTRA.get("places", ()):
+            cands.append({"x": x, "y": y, "name": nm, "big": False, "extra": kind})
+    for pk in cands:
         x0, y0 = pk["x"], pk["y"]
         if x0 * x0 + y0 * y0 > RADIUS_M ** 2:
             continue
-        if any((x0 - k[0]) ** 2 + (y0 - k[1]) ** 2 < EXPORT_DEDUPE_M ** 2 for k in kept):
+        gap = DEDUPE_M if pk.get("extra") else EXPORT_DEDUPE_M
+        if any((x0 - k[0]) ** 2 + (y0 - k[1]) ** 2 < gap ** 2 for k in kept):
             continue
         kx, ky, rr = int(x0 // 500), int(y0 // 500), R // 500 + 1
         cand = set()
@@ -1162,8 +1178,14 @@ def export_finder(out_dir, scored, parking, places, reserves):
         near = min(places, key=lambda q: (q[0] - x0) ** 2 + (q[1] - y0) ** 2, default=None)
         if near and (near[0] - x0) ** 2 + (near[1] - y0) ** 2 > 3000 ** 2:
             near = None
-        name = pk["name"] or (f"Parking near {near[2]}" if near else "Parking")
+        if pk.get("extra") == "trailhead":
+            name = pk["name"] or (EXTRA.get("trailhead_label", "Trailhead") +
+                                  (f" – {near[2]}" if near else ""))
+        else:
+            name = pk["name"] or (f"Parking near {near[2]}" if near else "Parking")
         flags = []
+        if pk.get("extra"):
+            flags.append("noparking")
         if pk["big"]:
             flags.append("big")
         if any((q[0] - x0) ** 2 + (q[1] - y0) ** 2 < 1000 ** 2 for q in reserves) or \
@@ -1264,8 +1286,19 @@ def main():
     gk = sum(p["len"] for p in scored if p["score"] >= GREEN) / 1000
     log(f"scored {len(scored)} paths, {km:.0f} km total, {gk:.0f} km quiet (>= {GREEN})")
     starts = rank_starts(parking, scored, places, reserves)
+    trailheads = []
+    for el in data.get("trailheads", {}).values():
+        c = el.get("center") or ({"lat": el["lat"], "lon": el["lon"]} if "lat" in el else None)
+        if c:
+            x, y = to_xy(c["lat"], c["lon"])
+            trailheads.append((x, y, (el.get("tags") or {}).get("name", "")))
+    if EXTRA:
+        log(f"extra start candidates: trailheads {len(trailheads)}, places of kind "
+            f"{'/'.join(EXTRA.get('places', ()))} "
+            f"{sum(1 for q in places if q[3] in EXTRA.get('places', ()))}")
     if "--export" in sys.argv:
-        export_finder(sys.argv[sys.argv.index("--export") + 1], scored, parking, places, reserves)
+        export_finder(sys.argv[sys.argv.index("--export") + 1], scored, parking, places, reserves,
+                      trailheads)
     fn, size = write_outputs(scored, starts)
     log(f"wrote {fn} ({size / 1e6:.1f} MB) and top_starts.csv ({len(starts)} start points)")
     for i, s in enumerate(starts[:10], 1):

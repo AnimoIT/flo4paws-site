@@ -29,6 +29,13 @@
   ],
   "note": "RPG code_group: 5 colza, 6 tournesol, 8 proteagineux, 15 legumineuses a grains (high); 2 mais (mid). Ruled R-B3a, S370."
  },
+ "extra_starts": {
+  "places": [
+   "village"
+  ],
+  "trailheads": true,
+  "trailhead_label": "Départ de sentier"
+ },
  "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL). Cultures : IGN – RPG, Licence Ouverte 2.0.",
  "quarterly_site_data": false,
  "local_data": "data/fr"
