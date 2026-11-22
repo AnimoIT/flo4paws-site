@@ -84,3 +84,18 @@ French pages, build step B6 of the France spec).
   parks + 53 villages; 0 trailheads mapped); 318 communes; RPG 8,599 parcels.
 - **UK is unaffected:** with the same cache, the UK `v1/` is byte-identical apart
   from `built` (S370).
+- **Seasonal layers (B4, S372):** `layers` in `fr.json` adds four fields after index 8 in
+  every path row: `wood` and `vine` (0-100, share of the path's 25 m samples), `dept`
+  (INSEE code covering most of the path) and `forest_id` (ONF id covering at least 25%),
+  plus `forests.json` (id -> name, forêt domaniale yes/no, dept). Sources: OSM + IGN
+  masque forêt 2021-2023; OSM + RPG group 21; IGN Admin Express; ONF forêts publiques.
+  RPG permanent grassland goes only to `out/livestock_check.csv` (not exported).
+  Regions without `layers` (the UK) get no new query and no new field.
+- **Rules:** `regions/fr_rules.json` holds the hunting orders (71, 69, 01), ONF hunt days,
+  the lead rule (15 Apr-30 Jun) and the harvest window. `python3 qw_rules.py --check`
+  validates it; `qw_rules.py --state 71 2026-12-04` shows a day's state. **Every August or
+  September**, enter the new orders and ONF days, or the check fails and the page treats
+  every day as a hunting day.
+- **Tests:** `python3 test_qw_rules.py`, `python3 test_b4_fields.py` (offline, synthetic).
+- **Livestock check:** `python3 qw_livestock_map.py <dir holding out/> map.html` makes the
+  map Flo uses to say whether the red livestock paths round Cluny really have stock.
