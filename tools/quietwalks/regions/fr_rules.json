@@ -1,0 +1,285 @@
+{
+ "format": 1,
+ "region": "fr",
+ "updated": "2026-11-22",
+ "coverage_depts": ["71", "69", "01"],
+ "note": "Hand-maintained. Enter each département's new order every August/September (spec S368 §4.1). Dates are inclusive. Weekdays are ISO (1 = Monday ... 7 = Sunday). The page works out today's state; python3 qw_rules.py --check validates this file.",
+
+ "levels": {
+  "battue": "drives with dogs (big game); the main danger to walkers",
+  "open": "general shooting season: every mode of hunting",
+  "stalk": "stalking or hides only (approche/affût), no dogs",
+  "suspended": "a weekday on which the order suspends shooting",
+  "closed": "no period in force"
+ },
+ "weights": {
+  "note": "Starting values from the spec (§4.1), to tune in B5. chasse value = wood x woodland[level] + (1 - wood) x open_land[level], 0-1.",
+  "woodland": {"battue": 1.0, "open": 1.0, "stalk": 0.2, "suspended": 0.2, "closed": 0.0},
+  "open_land": {"battue": 0.3, "open": 0.3, "stalk": 0.0, "suspended": 0.0, "closed": 0.0},
+  "onf_listed_day": 1.0,
+  "onf_other_day": 0.3,
+  "stale_rules": "treat every day as battue and show 'règles de chasse non mises à jour pour cette saison'"
+ },
+
+ "public_holidays": {
+  "note": "France (metropolitan), for the 'except public holidays' day rules. Easter 2027 is 28 March.",
+  "2026-27": ["2026-07-14", "2026-08-15", "2026-11-01", "2026-11-11", "2026-12-25", "2027-01-01",
+              "2027-03-29", "2027-05-01", "2027-05-06", "2027-05-08", "2027-05-17"]
+ },
+
+ "hunting": {
+  "71": {
+   "2026-27": {
+    "source": {
+     "ref": "71-2026-05-20-00002",
+     "date": "2026-05-20",
+     "title": "Arrêté préfectoral portant sur les périodes d'ouverture et les conditions spécifiques de chasse de certaines espèces de gibier pour la campagne 2026/2027",
+     "published": "RAA spécial n°71-2026-129, 20 mai 2026",
+     "url": "https://www.chasseurdefrance.com/wp-content/uploads/2026/06/FDC-71.pdf",
+     "read": "OCR (tesseract fra) of the scanned PDF, S372; checked by hand against the page images"
+    },
+    "periods": [
+     {"level": "stalk", "from": "2026-06-01", "to": "2026-07-31", "what": "sanglier, chevreuil, daim: approche ou affût, sans chien (art. 2)"},
+     {"level": "battue", "from": "2026-08-01", "to": "2027-03-31", "what": "sanglier en battue, à l'approche ou à l'affût (art. 2)"},
+     {"level": "open", "from": "2026-09-20", "to": "2027-02-28", "start_time": "08:00", "what": "ouverture générale de la chasse à tir et au vol (art. 1)"},
+     {"level": "stalk", "from": "2027-04-01", "to": "2027-05-31", "what": "sanglier: approche ou affût, protection des semis, sur autorisation individuelle (art. 2)"}
+    ],
+    "day_rules": [],
+    "notes": [
+     "No day of the week is closed to hunting: every day in season is a hunting day.",
+     "Hare: some EPG are Sunday-only (niveau 2); not used here (small game, open land).",
+     "Art. 6: in forêts domaniales the hunting days are set by the lot clauses (ONF calendars).",
+     "Boar destruction on prefectoral authorisation 1-31 March 2027 (71-2026-06-17-00003); inside the battue period anyway."
+    ]
+   }
+  },
+  "69": {
+   "2026-27": {
+    "source": {
+     "ref": "DDT-2026-A43",
+     "date": "2026-06-23",
+     "title": "Arrêté préfectoral relatif à l'ouverture et à la clôture de la chasse pour la campagne 2026-2027 dans le département du Rhône et la Métropole de Lyon",
+     "url": "https://www.chasseurdefrance.com/wp-content/uploads/2026/06/FDC-69.pdf",
+     "read": "OCR (tesseract fra) of the scanned PDF, S372"
+    },
+    "periods": [
+     {"level": "stalk", "from": "2026-06-01", "to": "2026-09-12", "assumed": true, "what": "ASSUMED (S372, ruling H3): summer deer stalking and boar on prefectoral authorisation, set by a separate order not seen. Pattern from the 2024 Rhône consultation: boar 1 June-14 Aug in battue/affût/approche on authorisation."},
+     {"level": "open", "from": "2026-09-13", "to": "2027-02-28", "start_time": "08:00", "what": "ouverture générale, chasse à tir (art. 2.1); chevreuil, cerf, daim same dates (art. 5.1)"},
+     {"level": "battue", "from": "2026-09-13", "to": "2027-03-31", "what": "sanglier (art. 5.1)"},
+     {"level": "stalk", "from": "2027-04-01", "to": "2027-05-31", "assumed": true, "what": "ASSUMED (S372, ruling H3): boar crop-protection shooting on authorisation, separate order not seen."}
+    ],
+    "day_rules": [
+     {"weekdays": [2, 5], "except_public_holidays": true, "scope": "small_game",
+      "what": "Chasse à tir suspendue le mardi et le vendredi, sauf jours fériés (art. 3). Does NOT apply to chevreuil, cerf, daim, sanglier, so drives can still happen: no change to the walker's risk."}
+    ],
+    "notes": [
+     "Outside 13 Sept-28 Feb (deer) and 13 Sept-31 Mar (boar), separate prefectoral orders set summer stalking and extra boar hunting (art. 5.1). S372 could not find the 2026 order, so those months are entered as 'stalk', marked assumed (ruling H3). Replace with the real order when found (likely DDT-2026-A4x, rhone.gouv.fr).",
+     "Hours: one hour before sunrise to one hour after sunset (Lyon) (art. 4)."
+    ]
+   }
+  },
+  "01": {
+   "2026-27": {
+    "source": {
+     "ref": "Arrêté préfectoral relatif à la campagne cynégétique 2026-2027 dans le département de l'Ain",
+     "date": "2026-03-27",
+     "title": "Arrêté relatif à la campagne cynégétique 2026-2027 dans le département de l'Ain",
+     "url": "https://www.chasseurdefrance.com/wp-content/uploads/2026/06/FDC-01.pdf",
+     "read": "text layer of the PDF, S372"
+    },
+    "periods": [
+     {"level": "battue", "from": "2026-07-01", "to": "2026-08-14", "what": "sanglier, sur autorisation préfectorale, battue/affût/approche (art. 2)"},
+     {"level": "battue", "from": "2026-08-15", "to": "2026-09-12", "what": "sanglier, battue/affût/approche (art. 2)"},
+     {"level": "open", "from": "2026-09-13", "to": "2027-02-28", "start_time": "08:00", "what": "ouverture générale de la chasse à tir (art. 1)"},
+     {"level": "battue", "from": "2027-03-01", "to": "2027-03-31", "what": "sanglier, battue/affût/approche (art. 2)"},
+     {"level": "stalk", "from": "2027-04-01", "to": "2027-05-31", "what": "sanglier, protection des semis, affût/approche, battue à titre exceptionnel (art. 2, art. 6)"},
+     {"level": "battue", "from": "2027-06-01", "to": "2027-06-30", "what": "sanglier, sur autorisation préfectorale, battue/affût/approche (art. 2)"}
+    ],
+    "day_rules": [
+     {"weekdays": [2, 5], "except_public_holidays": true, "scope": "all_shooting",
+      "what": "Chasse à tir et au vol suspendues le mardi et le vendredi, sauf jours fériés (art. 4). Exceptions: enclosures, commercial shoots, pest species without dogs, pigeon hides 1 Oct-11 Nov."}
+    ],
+    "notes": [
+     "Art. 4 gives no date limits, so the Tuesday/Friday suspension is applied to every period above.",
+     "Chasse à courre 15 Sept 2026-31 Mar 2027 runs every day (hounds, no shooting); not scored."
+    ]
+   }
+  }
+ },
+
+ "onf": {
+  "note": "ONF state-forest (forêt domaniale) hunt days, keyed by ONF id (iidtn_frt). Collective big-game shooting days from the general opening (hors battues administratives). Re-read each September from each forest's onf.fr page. Dates are indicative and can change.",
+  "no_calendar_2026-27": ["F22189K Trois-Monts", "F22210F Grison", "F22492B la Grosne", "F22559Q Pezanin"],
+  "no_calendar_note": "These four ONF pages show the 2026-2027 season with no dates (checked 22 Nov 2026). They get no onf entry, so they score as ordinary woodland on every hunting day (cautious). Look again in September.",
+  "forests": {
+   "F22134H": {
+    "name": "Forêt domaniale de Cluny",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26",
+       "2026-11-02",
+       "2026-11-09",
+       "2026-11-16",
+       "2026-11-23",
+       "2026-11-30",
+       "2026-12-07",
+       "2026-12-14",
+       "2026-12-21",
+       "2026-12-28",
+       "2027-01-04",
+       "2027-01-11",
+       "2027-01-18",
+       "2027-01-25",
+       "2027-02-01",
+       "2027-02-08",
+       "2027-02-15",
+       "2027-02-22",
+       "2027-03-01",
+       "2027-03-08",
+       "2027-03-15",
+       "2027-03-22",
+       "2027-03-29"
+      ],
+      "pattern": "Mondays",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22134h::jours-chasses-en-foret-domaniale-de-cluny.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   },
+   "F22303U": {
+    "name": "Forêt domaniale de la Ferté",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-09-24",
+       "2026-09-26",
+       "2026-10-01",
+       "2026-10-03",
+       "2026-10-08",
+       "2026-10-10",
+       "2026-10-15",
+       "2026-10-17",
+       "2026-10-22",
+       "2026-10-24",
+       "2026-10-29",
+       "2026-10-31",
+       "2026-11-05",
+       "2026-11-07",
+       "2026-11-12",
+       "2026-11-14",
+       "2026-11-19",
+       "2026-11-21",
+       "2026-11-26",
+       "2026-11-28",
+       "2026-12-03",
+       "2026-12-05",
+       "2026-12-10",
+       "2026-12-12",
+       "2026-12-17",
+       "2026-12-19",
+       "2026-12-24",
+       "2026-12-26",
+       "2026-12-31",
+       "2027-01-02",
+       "2027-01-07",
+       "2027-01-09",
+       "2027-01-14",
+       "2027-01-16",
+       "2027-01-21",
+       "2027-01-23",
+       "2027-01-28",
+       "2027-01-30",
+       "2027-02-04",
+       "2027-02-06",
+       "2027-02-11",
+       "2027-02-13",
+       "2027-02-18",
+       "2027-02-20",
+       "2027-02-25",
+       "2027-02-27"
+      ],
+      "pattern": "Thursdays and Saturdays, 3 lots",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22303u::jours-chasses-en-foret-domaniale-de-la-ferte.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   },
+   "F22488X": {
+    "name": "Forêt domaniale de Chapaize",
+    "dept": "71",
+    "seasons": {
+     "2026-27": {
+      "days": [
+       "2026-08-12",
+       "2026-08-19",
+       "2026-08-26",
+       "2026-09-02",
+       "2026-09-09",
+       "2026-09-16",
+       "2026-09-23",
+       "2026-09-30",
+       "2026-10-07",
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28",
+       "2026-11-04",
+       "2026-11-11",
+       "2026-11-18",
+       "2026-11-25",
+       "2026-12-02",
+       "2026-12-09",
+       "2026-12-16",
+       "2026-12-23",
+       "2026-12-30",
+       "2027-01-06",
+       "2027-01-13",
+       "2027-01-20",
+       "2027-01-27",
+       "2027-02-03",
+       "2027-02-10",
+       "2027-02-17",
+       "2027-02-24",
+       "2027-03-03",
+       "2027-03-10",
+       "2027-03-17",
+       "2027-03-24",
+       "2027-03-31"
+      ],
+      "pattern": "Wednesdays",
+      "source": {
+       "url": "https://www.onf.fr/vivre-la-foret/foret-domaniale-pres-de-chez-moi/++cc++f22488x::jours-chasses-en-foret-domaniale-de-chapaize.html",
+       "read": "S372, 22 Nov 2026: the page's calendar data (data-ams-events), all lots merged"
+      }
+     }
+    }
+   }
+  }
+ },
+
+ "lead_rule": {
+  "from": "04-15",
+  "to": "06-30",
+  "scope": "bois et forêts, en dehors des allées forestières",
+  "ref": "Arrêté du 16 mars 1955 relatif à l'interdiction de la divagation des chiens, art. 1 (modifié par l'arrêté du 31 juillet 1989)",
+  "url": "https://www.legifrance.gouv.fr/loda/id/LEGITEXT000006074488",
+  "effect": "banner and popup note on woodland paths; no score change"
+ },
+
+ "vineyards": {
+  "harvest_default": {"from": "08-20", "to": "10-10", "note": "used when the year has no entry"},
+  "harvest": {
+   "2026": {"from": "2026-08-13", "to": "2026-10-10", "source": "Beaujolais ban des vendanges 13 Aug 2026 (press); end date is the default"}
+  },
+  "harvest_people_weight": 0.6,
+  "spraying": {"from": "05-01", "to": "08-31", "effect": "popup note only"}
+ }
+}

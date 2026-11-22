@@ -36,7 +36,90 @@
   "trailheads": true,
   "trailhead_label": "Départ de sentier"
  },
- "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL). Cultures : IGN – RPG, Licence Ouverte 2.0.",
+ "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL). Cultures, vignes, prairies : IGN – RPG ; forêts : IGN – Masque forêt, ONF – Forêts publiques ; limites : IGN – Admin Express. Licence Ouverte 2.0.",
  "quarterly_site_data": false,
- "local_data": "data/fr"
+ "local_data": "data/fr",
+ "layers": {
+  "wood": {
+   "osm_tags": {
+    "landuse": [
+     "forest"
+    ],
+    "natural": [
+     "wood"
+    ]
+   },
+   "wfs": [
+    {
+     "layer": "IGNF_MASQUE-FORET.2021-2023:masque_foret",
+     "geom": "geom",
+     "sortby": "id"
+    }
+   ],
+   "note": "D1 (S372): OSM + IGN masque foret 2021-2023 (Licence Ouverte 2.0)"
+  },
+  "vine": {
+   "osm_tags": {
+    "landuse": [
+     "vineyard"
+    ]
+   },
+   "wfs": [
+    {
+     "layer": "RPG.LATEST:parcelles_graphiques",
+     "geom": "geom",
+     "sortby": "num_parcel",
+     "id": "num_parcel",
+     "cql": "code_group='21'"
+    }
+   ],
+   "note": "D3 (S372): OSM + RPG group 21 (vignes)"
+  },
+  "grass": {
+   "wfs": [
+    {
+     "layer": "IGNF_RPG_PRAIRIES-PERMANENTES_2025:prairies_permanentes",
+     "geom": "geom",
+     "sortby": "num_parcel"
+    }
+   ],
+   "export": false,
+   "note": "D5 (S372): RPG permanent grassland, for Flo's livestock check (R-B3c) only; not exported, no score change"
+  },
+  "forest": {
+   "labels": true,
+   "min_share": 0.25,
+   "wfs": [
+    {
+     "layer": "ONF.FORETS_PUBLIQUES:ONF_FORETS_PUBLIQUES",
+     "geom": "geom",
+     "sortby": "iidtn_frt",
+     "id": "iidtn_frt",
+     "props": [
+      "llib_frt",
+      "cdom_frt",
+      "cinse_dep"
+     ],
+     "tiles": false
+    }
+   ],
+   "note": "D2 (S372): all ONF public forests; forest_id = iidtn_frt; forests.json gives name, domaniale, dept"
+  },
+  "dept": {
+   "labels": true,
+   "wfs": [
+    {
+     "layer": "ADMINEXPRESS-COG-CARTO.LATEST:departement",
+     "geom": "geometrie",
+     "sortby": "code_insee",
+     "id": "code_insee",
+     "props": [
+      "nom_officiel"
+     ],
+     "tiles": false
+    }
+   ],
+   "note": "D4 (S372): IGN Admin Express departement outlines; the code covering most of the path"
+  }
+ }
 }

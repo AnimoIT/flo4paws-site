@@ -203,6 +203,17 @@ if EXTRA.get("trailheads"):
 nwr["highway"="trailhead"]({b});
 out tags center;"""
 
+# S372 B4: seasonal-layer fields (France). Regions without "layers" (the UK) are untouched.
+LAYERS = REGION.get("layers") or {}
+_LC_TAGS = {}
+for _cfg in LAYERS.values():
+    for _k, _vals in (_cfg.get("osm_tags") or {}).items():
+        _LC_TAGS.setdefault(_k, set()).update(_vals)
+if _LC_TAGS:
+    QUERIES["landcover"] = "\n(\n" + "".join(
+        f'  nwr["{k}"~"^({"|".join(sorted(v))})$"]({{b}});\n' for k, v in sorted(_LC_TAGS.items())
+    ) + ");\nout tags geom;"
+
 
 def overpass(query):
     body = "[out:json][timeout:300][maxsize:536870912];" + query
@@ -842,6 +853,192 @@ def _area(data, kind):
     return abs(s) / 2
 
 
+# ---------------------------------------------------------------- seasonal layers (S372 B4)
+WFS_PAGE = 5000
+
+
+class LabelGrid:
+    """A value per 50 m cell (0 = none), filled from polygons with holes (even-odd over all rings)."""
+    def __init__(self, typecode="B"):
+        self.v = array.array(typecode, [0]) * (NX * NY)
+
+    def fill_rings(self, rings, val):
+        rings = [r[:-1] if len(r) > 1 and r[0] == r[-1] else r for r in rings]
+        rings = [r for r in rings if len(r) >= 3]
+        if not rings:
+            return
+        ys = [p[1] for r in rings for p in r]
+        cy0, cy1 = max(cell_of(0, min(ys))[1], 0), min(cell_of(0, max(ys))[1], NY - 1)
+        edges = [e for r in rings for e in zip(r, r[1:] + r[:1])]
+        for cy in range(cy0, cy1 + 1):
+            yc = OY + (cy + 0.5) * CELL_M
+            xs = sorted(x1 + (yc - y1) * (x2 - x1) / (y2 - y1)
+                        for (x1, y1), (x2, y2) in edges if (y1 <= yc < y2) or (y2 <= yc < y1))
+            row = cy * NX
+            for a, b in zip(xs[0::2], xs[1::2]):
+                ca = max(0, int(math.ceil((a - OX) / CELL_M - 0.5)))
+                cb = min(NX - 1, int(math.floor((b - OX) / CELL_M - 0.5)))
+                for cx in range(ca, cb + 1):
+                    self.v[row + cx] = val
+
+    def get(self, x, y):
+        cx, cy = cell_of(x, y)
+        if 0 <= cx < NX and 0 <= cy < NY:
+            return self.v[cy * NX + cx]
+        return 0
+
+
+def _geo_polys(g):
+    """GeoJSON Polygon/MultiPolygon -> list of polygons, each a list of rings of (lat, lon)."""
+    if not g:
+        return []
+    cs = g.get("coordinates") or []
+    polys = [cs] if g.get("type") == "Polygon" else cs if g.get("type") == "MultiPolygon" else []
+    return [[[(round(la, 5), round(lo, 5)) for lo, la, *_ in ring] for ring in poly] for poly in polys]
+
+
+def fetch_wfs(name, src, offline, refresh):
+    """Polygons of one Geoplateforme WFS layer over the coverage box, cached per tile.
+
+    Returns {feature_id: {"props": {...}, "polys": [[ring, ...], ...]}} with rings of (lat, lon).
+    """
+    tiles = bbox_tiles()
+    if not src.get("tiles", True):
+        tiles = [(min(t[0] for t in tiles), min(t[1] for t in tiles),
+                  max(t[2] for t in tiles), max(t[3] for t in tiles))]
+    idf, keep = src.get("id", src["sortby"]), src.get("props", [])
+    out = {}
+    for ti, (ts, tw, tn, te) in enumerate(tiles):
+        fn = os.path.join(CACHE, f"wfs_{name}_{ti}.json")
+        if os.path.exists(fn) and not refresh:
+            with open(fn) as f:
+                got = json.load(f)
+        elif offline:
+            log(f"  missing cache {fn} (offline) - skipped")
+            continue
+        else:
+            got, start, failed = {}, 0, False
+            cql = f"BBOX({src['geom']},{tw},{ts},{te},{tn},'EPSG:4326')"
+            if src.get("cql"):
+                cql = f"{src['cql']} AND {cql}"
+            while True:
+                q = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": src["layer"],
+                     "OUTPUTFORMAT": "application/json", "SRSNAME": "EPSG:4326", "CQL_FILTER": cql,
+                     "COUNT": str(WFS_PAGE), "STARTINDEX": str(start), "SORTBY": src["sortby"]}
+                js = None
+                for attempt in range(4):
+                    try:
+                        js = http_json(RPG_WFS + "?" + urllib.parse.urlencode(q))
+                        break
+                    except Exception as e:  # noqa: BLE001
+                        log(f"  wfs {name} error {e}; retry")
+                        time.sleep(10 * (attempt + 1))
+                if js is None:
+                    failed = True
+                    break
+                feats = js.get("features", [])
+                for ft in feats:
+                    pr = ft.get("properties") or {}
+                    fid = str(pr.get(idf))
+                    if fid not in got:
+                        got[fid] = {"props": {k: pr.get(k) for k in keep}, "polys": _geo_polys(ft.get("geometry"))}
+                start += len(feats)
+                if len(feats) < WFS_PAGE:
+                    break
+                time.sleep(1)
+            if failed:
+                log(f"  wfs {name} tile {ti + 1}/{len(tiles)}: download failed - not cached, rerun later")
+                continue
+            with open(fn, "w") as f:
+                json.dump(got, f, separators=(",", ":"))
+            log(f"wfs {name} tile {ti + 1}/{len(tiles)}: {len(got)} features")
+            time.sleep(1)
+        for fid, ft in got.items():
+            out.setdefault(fid, ft)
+    return out
+
+
+def _osm_match(t, tags):
+    return any(t.get(k) in v for k, v in tags.items())
+
+
+def build_seasonal(landcover, offline, refresh):
+    """Grids for each configured layer. Masks hold 1; labelled layers hold an index into labels[name]."""
+    grids, labels = {}, {}
+    for name, cfg in LAYERS.items():
+        labelled = bool(cfg.get("labels"))
+        g = LabelGrid("H" if labelled else "B")
+        labels[name] = [None]
+        n_osm = 0
+        tags = cfg.get("osm_tags") or {}
+        if tags:
+            for el in (landcover or {}).values():
+                if not _osm_match(el.get("tags", {}), tags):
+                    continue
+                kind, data = element_points(el)
+                if kind == "ring":
+                    g.fill_rings([data], 1)
+                elif kind == "rings":
+                    g.fill_rings(data, 1)
+                else:
+                    continue
+                n_osm += 1
+        n_wfs = 0
+        for k, src in enumerate(cfg.get("wfs") or []):
+            feats = fetch_wfs(f"{name}{k}" if k else name, src, offline, refresh)
+            for fid in sorted(feats):
+                ft = feats[fid]
+                val = 1
+                if labelled:
+                    labels[name].append({"id": fid, **ft["props"]})
+                    val = len(labels[name]) - 1
+                for poly in ft["polys"]:
+                    g.fill_rings([[to_xy(la, lo) for la, lo in ring] for ring in poly], val)
+                n_wfs += 1
+        cells = sum(1 for v in g.v if v)
+        log(f"layer {name}: osm {n_osm}, wfs {n_wfs}, {cells * CELL_M * CELL_M / 1e6:.0f} km2")
+        grids[name] = g
+    return grids, labels
+
+
+def add_seasonal_fields(scored, grids, labels):
+    """Per path: share (0-100) of its 25 m samples inside each mask; the label covering most of it."""
+    for p in scored:
+        sm = sample_line(p["pts"])
+        n = len(sm)
+        for name, g in grids.items():
+            vals = [g.get(x, y) for x, y in sm]
+            if len(labels[name]) > 1:
+                cnt = {}
+                for v in vals:
+                    if v:
+                        cnt[v] = cnt.get(v, 0) + 1
+                best = max(sorted(cnt), key=cnt.get, default=0)
+                need = LAYERS[name].get("min_share", 0)
+                p["x_" + name] = labels[name][best]["id"] if best and cnt[best] / n >= need else ""
+            else:
+                p["x_" + name] = round(100 * sum(1 for v in vals if v) / n)
+
+
+def write_livestock_check(scored, labels):
+    """R-B3c / D5: current livestock values next to RPG permanent grassland, for Flo's check."""
+    if "grass" not in LAYERS:
+        return
+    os.makedirs(OUT, exist_ok=True)
+    fn = os.path.join(OUT, "livestock_check.csv")
+    with open(fn, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["way_id", "livestock", "grass_pct", "wood_pct", "len_m", "name", "mid_lat", "mid_lon"])
+        for p in scored:
+            mid = p["geo"][len(p["geo"]) // 2]
+            w.writerow([p["id"], p["lv"], p.get("x_grass", ""), p.get("x_wood", ""), round(p["len"]),
+                        p["name"][:60], f"{mid[0]:.5f}", f"{mid[1]:.5f}"])
+    red = [p for p in scored if p["lv"] >= 60]
+    on_grass = sum(1 for p in red if p.get("x_grass", 0) >= 25)
+    log(f"livestock check: {len(red)} paths with livestock >= 60, {on_grass} of them >= 25% on RPG "
+        f"permanent grassland; wrote {fn}")
+
+
 # ---------------------------------------------------------------- scoring
 def decay(d, r):
     return 0.0 if d >= r else 1.0 - d / r
@@ -1104,6 +1301,10 @@ S.forEach((s,i)=>{const [lat,lon,name,gkm,tkm,mean,dkm,flag]=s;
 EXPORT_CHUNK_M = 10000       # data split into 10 km squares (by distance from the centre)
 EXPORT_MIN_KM = 3.0          # a start point needs this much path within START_RADIUS_M
 EXPORT_DEDUPE_M = 300
+# S372 B4: extra per-path fields after index 8, in this order (France only; empty for the UK)
+EXPORT_EXTRA = {k: v for k, v in (("wood", "wood"), ("vine", "vine"), ("dept", "dept"), ("forest", "forest_id"))
+                if k in LAYERS}
+SEASONAL_LABELS = {}
 
 
 def export_finder(out_dir, scored, parking, places, reserves, trailheads=()):
@@ -1122,8 +1323,10 @@ def export_finder(out_dir, scored, parking, places, reserves, trailheads=()):
         cx = int(((sum(xs) / len(xs)) + RADIUS_M + 2000) // EXPORT_CHUNK_M)
         cy = int(((sum(ys) / len(ys)) + RADIUS_M + 2000) // EXPORT_CHUNK_M)
         g = [[round(b, 5), round(a, 5)] for a, b in simplify(p["geo"])]   # [lon, lat]
-        chunks.setdefault(f"{cx}_{cy}", []).append(
-            [p["id"], p["pd"], p["lv"], p["bk"], p["bg"], p["tr"], round(p["len"]), p["name"][:60], g])
+        row = [p["id"], p["pd"], p["lv"], p["bk"], p["bg"], p["tr"], round(p["len"]), p["name"][:60], g]
+        for k in EXPORT_EXTRA:
+            row.append(p.get("x_" + k, ""))
+        chunks.setdefault(f"{cx}_{cy}", []).append(row)
     bbox, gidx, base = {}, {}, 0
     for key in sorted(chunks):
         rows = chunks[key]
@@ -1204,13 +1407,19 @@ def export_finder(out_dir, scored, parking, places, reserves, trailheads=()):
         "radius_m": RADIUS_M,
         "start_radius_m": START_RADIUS_M,
         "fields": ["id", "people_dogs", "livestock", "bikes", "bangs", "traffic", "len_m", "name",
-                   "geometry_lonlat"],
+                   "geometry_lonlat"] + list(EXPORT_EXTRA.values()),
         "start_fields": ["lat", "lon", "name", "flags", "path_numbers_delta"],
         "chunks": bbox,
         "paths": len(scored),
         "starts": len(starts),
         "attribution": ATTRIBUTION,
     }
+    if EXPORT_EXTRA and SEASONAL_LABELS.get("forest"):
+        forests = {lb["id"]: [lb.get("llib_frt"), lb.get("cdom_frt") == "OUI", lb.get("cinse_dep")]
+                   for lb in SEASONAL_LABELS["forest"][1:]}
+        with open(os.path.join(tmp, "forests.json"), "w", encoding="utf-8") as f:
+            json.dump(forests, f, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+        index["forests"] = "forests.json"
     with open(os.path.join(tmp, "index.json"), "w", encoding="utf-8") as f:
         json.dump(index, f, indent=1)
     if os.path.exists(out_dir):
@@ -1285,6 +1494,18 @@ def main():
     km = sum(p["len"] for p in scored) / 1000
     gk = sum(p["len"] for p in scored if p["score"] >= GREEN) / 1000
     log(f"scored {len(scored)} paths, {km:.0f} km total, {gk:.0f} km quiet (>= {GREEN})")
+    if LAYERS:
+        grids, labels = build_seasonal(data.get("landcover"), offline, refresh)
+        SEASONAL_LABELS.update(labels)
+        add_seasonal_fields(scored, grids, labels)
+        if "dept" in grids:
+            cnt = {}
+            for p in scored:
+                cnt[p["x_dept"]] = cnt.get(p["x_dept"], 0) + 1
+            log(f"paths by dept: {dict(sorted(cnt.items()))}")
+        if "forest" in grids:
+            log(f"paths in a public forest: {sum(1 for p in scored if p['x_forest'])}")
+        write_livestock_check(scored, labels)
     starts = rank_starts(parking, scored, places, reserves)
     trailheads = []
     for el in data.get("trailheads", {}).values():
