@@ -1,0 +1,23 @@
+{
+ "id": "fr",
+ "place_name": "Mâcon–Cluny",
+ "centre": [
+  46.371,
+  4.744
+ ],
+ "radius_m": 30000,
+ "cache": "cache",
+ "out": "out",
+ "places": "communes",
+ "communes_depts": [
+  "71",
+  "69",
+  "01"
+ ],
+ "crops": {
+  "source": "none"
+ },
+ "attribution": "Données cartographiques © les contributeurs d'OpenStreetMap (ODbL).",
+ "quarterly_site_data": false,
+ "local_data": "data/fr"
+}

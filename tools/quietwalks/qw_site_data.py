@@ -3,7 +3,8 @@
 
   python3 qw_site_data.py postcodes OUT_DIR   # OS Code-Point Open -> OUT_DIR/postcodes/<OUTWARD>.json
   python3 qw_site_data.py basemap OUT_DIR     # Protomaps daily build -> OUT_DIR/basemap.pmtiles
-  python3 qw_site_data.py all OUT_DIR
+  python3 qw_site_data.py communes OUT_DIR    # geo.api.gouv.fr -> OUT_DIR/communes.json (French regions)
+  python3 qw_site_data.py all OUT_DIR         # the region's place file(s) + basemap
   python3 qw_site_data.py --region uk all OUT_DIR   # any of the above, for one region (default uk)
 
 Uses the coverage (centre and radius) from quietwalks.py in the same folder.
@@ -11,6 +12,8 @@ Pure standard library, plus the pmtiles CLI binary it downloads into ./bin.
 Postcodes: Contains OS data (c) Crown copyright and database right; Royal Mail data
 (c) Royal Mail copyright and database right; National Statistics data (c) Crown
 copyright and database right. Open Government Licence.
+Communes: API Decoupage administratif (geo.api.gouv.fr), Etalab / La Poste / IGN,
+Licence Ouverte 2.0.
 """
 import csv
 import datetime
@@ -38,6 +41,7 @@ import quietwalks as qw  # noqa: E402
 UA = {"User-Agent": "quietwalks-site/1.0 (personal/Flo4Paws)"}
 CPO_URL = "https://api.os.uk/downloads/v1/products/CodePointOpen/downloads?area=GB&format=CSV&redirect"
 EXTRA_KM = 5            # postcodes this far beyond the path coverage still resolve
+GEO_API = "https://geo.api.gouv.fr/departements/{d}/communes?fields=nom,code,codesPostaux,centre,population&format=json"
 BASEMAP_EXTRA_KM = 10   # basemap a little wider than the paths
 BASEMAP_MAXZOOM = 15
 
@@ -114,6 +118,51 @@ def build_postcodes(out_dir):
     log(f"postcodes: read {rows} rows, wrote {n} postcodes in {len(books)} district files")
 
 
+def build_communes(out_dir):
+    """French place search: one communes.json of [name, insee, [postcodes], lat, lon, population]."""
+    if qw.REGION["places"] != "communes":
+        raise SystemExit(f"communes: region {qw.REGION_ID} uses place source {qw.REGION['places']!r}")
+    depts = qw.REGION["communes_depts"]
+    lim = qw.RADIUS_M + EXTRA_KM * 1000
+    os.makedirs(qw.CACHE, exist_ok=True)
+    rows, seen = [], 0
+    for d in depts:
+        cache = os.path.join(qw.CACHE, f"communes_{d}.json")
+        if not os.path.exists(cache):
+            log(f"downloading communes for departement {d}")
+            data = fetch(GEO_API.format(d=d), timeout=120)
+            json.loads(data)                      # refuse to cache anything that isn't JSON
+            with open(cache + ".tmp", "wb") as f:
+                f.write(data)
+            os.replace(cache + ".tmp", cache)
+        with open(cache, encoding="utf-8") as f:
+            for c in json.load(f):
+                seen += 1
+                lon, lat = c["centre"]["coordinates"]
+                x, y = qw.to_xy(lat, lon)
+                if x * x + y * y > lim * lim:
+                    continue
+                rows.append([c["nom"], c["code"], sorted(c.get("codesPostaux") or []),
+                             round(lat, 5), round(lon, 5), c.get("population") or 0])
+    if not rows:
+        raise SystemExit("communes: none inside the coverage; check centre and communes_depts")
+    rows.sort(key=lambda r: r[1])
+    doc = {"format": 1, "region": qw.REGION_ID, "fields": ["name", "insee", "postcodes", "lat", "lon", "pop"],
+           "source": "geo.api.gouv.fr (Etalab, La Poste, IGN), Licence Ouverte 2.0", "communes": rows}
+    tmp = os.path.join(out_dir, "communes.json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
+    os.replace(tmp, os.path.join(out_dir, "communes.json"))
+    log(f"communes: read {seen} in {len(depts)} departements, kept {len(rows)} within {lim / 1000:.0f} km")
+
+
+def build_places(out_dir):
+    if qw.REGION["places"] == "communes":
+        build_communes(out_dir)
+    else:
+        build_postcodes(out_dir)
+
+
 def pmtiles_bin():
     bindir = os.path.join(HERE, "bin")
     exe = os.path.join(bindir, "pmtiles")
@@ -168,12 +217,16 @@ def build_basemap(out_dir):
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("postcodes", "basemap", "all"):
+    if len(sys.argv) != 3 or sys.argv[1] not in ("postcodes", "communes", "basemap", "all"):
         raise SystemExit(__doc__)
     what, out_dir = sys.argv[1], sys.argv[2]
     os.makedirs(out_dir, exist_ok=True)
-    if what in ("postcodes", "all"):
+    if what == "postcodes":
         build_postcodes(out_dir)
+    if what == "communes":
+        build_communes(out_dir)
+    if what == "all":
+        build_places(out_dir)
     if what in ("basemap", "all"):
         build_basemap(out_dir)
     log("SITE DATA DONE")
