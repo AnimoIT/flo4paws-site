@@ -77,6 +77,24 @@ def render_sitemap(pages):
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + rows + "</urlset>\n")
 
 
+PDF_ITEM = re.compile(r'<span class="nm"><a href="(/guides/([a-z0-9-]+)\.pdf)">(.*?)</a></span>\s*<p>(.*?)</p>', re.S)
+
+
+def render_guides_json(pages):
+    """S379: the PDF guides listed on /guides/, for the app's Library (served at app.flo4paws.co.uk/practice-guides.json).
+    Read from the hub page itself, so a PDF added there is listed with no other change. Fails the build if the
+    hub and src/static/guides/ disagree."""
+    hub = next(m for m in pages if m["path"] == "/guides/")
+    items = [{"title": re.sub(r"\s*\(PDF\)$", "", html.unescape(t)).strip(), "url": SITE + href,
+              "summary": html.unescape(re.sub(r"<[^>]+>", "", d)).strip()}
+             for href, slug, t, d in PDF_ITEM.findall(hub["body"])]
+    listed = sorted(href.rsplit("/", 1)[1] for href, _, _, _ in PDF_ITEM.findall(hub["body"]))
+    on_disk = sorted(p.name for p in (SRC / "static" / "guides").glob("*.pdf"))
+    assert listed == on_disk, "/guides/ lists %s but src/static/guides has %s" % (listed, on_disk)
+    assert len(set(listed)) == len(listed), "a PDF is listed twice on /guides/"
+    return json.dumps({"updated": lastmod(hub), "items": items}, indent=2, ensure_ascii=False) + "\n"
+
+
 def build(out):
     out = pathlib.Path(out)
     if out.exists():
@@ -88,6 +106,7 @@ def build(out):
         d.mkdir(parents=True, exist_ok=True)
         (d / "index.html").write_text(render_page(m), encoding="utf-8")
     (out / "sitemap.xml").write_text(render_sitemap(pages), encoding="utf-8")
+    (out / "guides.json").write_text(render_guides_json(pages), encoding="utf-8")
     return len(pages)
 
 
